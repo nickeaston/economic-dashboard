@@ -53,11 +53,7 @@ jobs:
       - name: Fetch 10y data from APIs (yfinance, IMF, ABS, RBA, World Bank)
         run: python economic_dashboard_update.py
 
-      - name: Render HTML + email
-        env:
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      - name: Render HTML
         run: |
           python generate_dashboard.py
           # GitHub Pages defaults to index.html — mirror the rendered HTML there

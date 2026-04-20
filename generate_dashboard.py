@@ -11,14 +11,8 @@ Features:
 
 Run:  python3 generate_dashboard.py
 """
-import json, os, smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import json, os
 from datetime import datetime
-
-SMTP_USER = os.environ.get("SMTP_USER", "")
-SMTP_PASS = os.environ.get("SMTP_PASS", "")
-EMAIL_TO  = os.environ.get("EMAIL_TO", "")
 
 DATA_FILE   = os.path.join(os.path.dirname(__file__), "economic_data.json")
 OUTPUT_FILE = os.path.join(os.path.dirname(__file__), "economic_dashboard.html")
@@ -1096,24 +1090,5 @@ with open(OUTPUT_FILE, "w") as f:
 print(f"Dashboard written to: {OUTPUT_FILE}")
 print(f"Sections: {len(SECTIONS)} | Charts: {sum(len(c) for _, _, c in SECTIONS)}")
 
-# ── Email the dashboard ───────────────────────────────────────────────────────
-def send_dashboard_email():
-    date_str = datetime.now().strftime("%d %b %Y")
-    msg = MIMEMultipart("alternative")
-    msg["From"]    = f"Spencer <{SMTP_USER}>"
-    msg["To"]      = EMAIL_TO
-    msg["Subject"] = f"Easton Assets — Economic Dashboard | {date_str}"
-    msg.attach(MIMEText(HTML, "html"))
-    try:
-        with smtplib.SMTP("smtp.gmail.com", 587) as s:
-            s.starttls()
-            s.login(SMTP_USER, SMTP_PASS)
-            s.sendmail(SMTP_USER, [EMAIL_TO], msg.as_string())
-        print(f"Dashboard emailed to {EMAIL_TO}")
-    except Exception as e:
-        print(f"WARNING: email failed — {e}")
-
-if SMTP_PASS and EMAIL_TO:
-    send_dashboard_email()
-else:
-    print("(SMTP env vars not set — skipping email. Set SMTP_USER/SMTP_PASS/EMAIL_TO to enable.)")
+# Email sending removed 2026-04-20 — dashboard is URL-accessed only.
+# Live site: https://nickeaston.github.io/economic-dashboard/

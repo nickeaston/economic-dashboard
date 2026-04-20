@@ -540,12 +540,13 @@ def build_data(cache: dict) -> dict:
     use("copper",   fetch_yf("HG=F",  "Copper",        "USD/t",  multiply=2204.62))
     # TIO=F = SGX TSI Iron Ore 62% Fe CFR China futures (USD/t)
     use("iron_ore", fetch_yf("TIO=F", "Iron Ore",      "USD/t"))
-    # Nickel — IMF PCPS index (LME nickel, 2016=100)
-    use("nickel",   fetch_imf("PNICK",   "Nickel",  "Index 2016=100"))
-    # Lithium carbonate — IMF PCPS (USD/mt)
-    use("lithium",  fetch_imf("PLITHM",  "Lithium", "USD/t"))
-    # Cobalt — IMF PCPS (USD/mt)
-    use("cobalt",   fetch_imf("PCOBALT", "Cobalt",  "USD/t"))
+    # Battery/strategic metals — ETF proxies (consistent USD/share across 10y).
+    # Prior IMF PCPS feeds (nickel/lithium/cobalt) dropped 2026-04-20 because their
+    # historical data had mixed units from multiple API format changes — values
+    # jumped between index-points and USD/t across years, producing unusable charts.
+    use("lithium",  fetch_yf("LIT",   "Lithium (LIT ETF proxy)",          "USD/share"))
+    use("nickel",   fetch_yf("PICK",  "Metals & Mining (PICK ETF proxy)", "USD/share"))
+    use("cobalt",   fetch_yf("REMX",  "Strategic Metals (REMX ETF proxy)","USD/share"))
 
     # ── Global Markets ───────────────────────────────────────────────────────
     log("\n=== Global Markets ===")
