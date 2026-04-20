@@ -447,15 +447,20 @@ IMF_ISO3 = {
     "GB": "GBR", "DE": "DEU", "FR": "FRA",
 }
 
-# IMF WEO October 2025 snapshot — fallback for countries where World Bank's
-# GC.DOD.TOTL.GD.ZS returns empty (Japan / China / France). These update twice
-# a year (April and October WEO releases). Source:
+# IMF WEO 2024 snapshot — authoritative for govt debt/GDP across G7 + AU + CN.
+# World Bank's GC.DOD.TOTL.GD.ZS has coverage gaps (empty for JP/CN/FR, stuck in
+# 1990 for DE) so we override with these for all 7 countries. Update after each
+# IMF WEO release (April + October). Source:
 # https://www.imf.org/external/datamapper/api/v1/GGXWDG_NGDP
-# Last updated manually 2026-04-20. Refresh after next IMF WEO.
+# Last refreshed manually 2026-04-20.
 IMF_WEO_GOVT_DEBT_2024 = {
-    "Japan":   254.6,  # 2024 actual
-    "China":    93.2,  # 2024 actual
-    "France":  112.2,  # 2024 actual
+    "Australia":        49.1,
+    "United States":   123.0,
+    "Japan":           254.6,
+    "China":            93.2,
+    "United Kingdom":  101.8,
+    "Germany":          62.4,
+    "France":          112.2,
 }
 
 
@@ -511,13 +516,13 @@ def fetch_country_debt() -> dict:
             except Exception as e:
                 log(f"    country_debt error: {e}")
 
-    # Try IMF DataMapper to fill in gaps (Japan/China/France typically)
+    # IMF WEO snapshot is authoritative — overrides World Bank since WB has
+    # coverage gaps + stale pre-2000 values for several countries.
     imf_govt = fetch_imf_govt_debt()
     for name, val in imf_govt.items():
-        if name not in govt:
-            govt[name] = val
+        govt[name] = val
 
-    # Final safety net — hardcoded IMF WEO snapshot for countries still missing
+    # Final safety net — hardcoded IMF WEO snapshot
     for name, val in IMF_WEO_GOVT_DEBT_2024.items():
         if name not in govt:
             govt[name] = val
