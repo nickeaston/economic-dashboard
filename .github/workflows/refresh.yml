@@ -2,16 +2,42 @@ name: Refresh economic dashboard
 
 on:
   schedule:
-    # 00:00 UTC on the 1st and 15th = 10:00 AEST / 11:00 AEDT (Melbourne morning)
-    - cron: '0 0 1,15 * *'
+    # Runs daily at 21:30 UTC. That's 07:30 AEST (winter, UTC+10) or 08:30 AEDT
+    # (summer, UTC+11) on the *next* day in Melbourne. The `check` job below
+    # filters so the refresh only happens on Melbourne's 1st and 15th.
+    - cron: '30 21 * * *'
   workflow_dispatch:
-    # "Refresh Now" button on the dashboard links here — click "Run workflow"
+    # "Refresh Now" button on the dashboard links here — click "Run workflow".
+    # Manual dispatch bypasses the date gate and always refreshes.
 
 permissions:
   contents: write
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.gate.outputs.proceed }}
+    steps:
+      - id: gate
+        run: |
+          DAY=$(TZ=Australia/Melbourne date +%-d)
+          MELB_DATE=$(TZ=Australia/Melbourne date '+%Y-%m-%d %H:%M %Z')
+          echo "Melbourne now: $MELB_DATE (day-of-month = $DAY)"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual trigger — proceeding."
+            echo "proceed=yes" >> "$GITHUB_OUTPUT"
+          elif [ "$DAY" = "1" ] || [ "$DAY" = "15" ]; then
+            echo "Scheduled trigger on Melbourne day $DAY — proceeding."
+            echo "proceed=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "Scheduled trigger on Melbourne day $DAY — skipping (only runs 1st/15th)."
+            echo "proceed=no" >> "$GITHUB_OUTPUT"
+          fi
+
   refresh:
+    needs: check
+    if: needs.check.outputs.proceed == 'yes'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
