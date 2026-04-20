@@ -187,11 +187,16 @@ def fetch_abs(dataflow: str, key: str, label: str, unit: str,
                         y, m = tp.split("-")
                         m = int(m)
                     dt = datetime(int(y), int(m), 1)
+                    # Keep datetime for proper chronological sort; drop it before returning
                     result.append({"date": fmt_date(dt),
-                                   "value": round(float(val) * scale, 4)})
+                                   "value": round(float(val) * scale, 4),
+                                   "_dt": dt})
                 except Exception:
                     continue
-        result.sort(key=lambda x: x["date"])
+        # Sort chronologically (NOT string-sort — d/m/yy strings sort wrong).
+        result.sort(key=lambda x: x["_dt"])
+        for r in result:
+            r.pop("_dt", None)
         return {"label": label, "unit": unit, "series": result}
     except Exception as e:
         log(f"    ERROR ABS {dataflow}/{key}: {e}")
