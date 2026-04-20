@@ -159,6 +159,40 @@
     color: var(--text);
     margin-bottom: 10px;
   }
+  /* Title row with current price + % change to the right of each chart title */
+  .chart-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .chart-title-row h3 { margin-bottom: 0; }
+  .chart-title-price {
+    font-size: 14px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .current-price {
+    font-weight: 700;
+    color: var(--text);
+    font-size: 15px;
+    margin-right: 6px;
+  }
+  .chg-pos { color: #2e7d32; font-weight: 600; }
+  .chg-neg { color: #c62828; font-weight: 600; }
+  /* Refresh guidance banner at top */
+  .refresh-note {
+    background: #eef3f8;
+    border-left: 4px solid #1961c2;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin: 0 0 18px;
+    font-size: 13px;
+    color: #334155;
+  }
+  .refresh-note strong { color: #0f1923; }
 
   /* ── Zoom buttons ── */
   .zoom-bar {
@@ -317,9 +351,9 @@
   <li><a href="#metric-gold">Gold</a></li>
   <li><a href="#metric-iron_ore">Iron Ore</a></li>
   <li><a href="#metric-copper">Copper</a></li>
-  <li><a href="#metric-nickel">Nickel</a></li>
-  <li><a href="#metric-lithium">Lithium</a></li>
-  <li><a href="#metric-cobalt">Cobalt</a></li>
+  <li><a href="#metric-lithium">Lithium (LIT ETF)</a></li>
+  <li><a href="#metric-nickel">Metals & Mining (PICK ETF)</a></li>
+  <li><a href="#metric-cobalt">Strategic Metals (REMX ETF)</a></li>
 </ul></li>
 <li class="nav-section"><a href="#global_markets">Global Markets</a><ul>
   <li><a href="#metric-dow">Dow Jones</a></li>
@@ -347,6 +381,13 @@
     </div>
     <span id="regen-msg"></span>
     <a id="regen-btn" href="https://github.com/nickeaston/economic-dashboard/actions/workflows/refresh.yml" target="_blank" rel="noopener" style="text-decoration:none;">&#8635; Refresh Now</a>
+  </div>
+
+  <div class="refresh-note">
+    <strong>How this dashboard works:</strong> Auto-refreshes at 7:30 AEST on the 1st and 15th of each month.
+    For an on-demand refresh, click <strong>Refresh Now</strong> top-right &rarr; this opens GitHub Actions &rarr; press <strong>Run workflow</strong>.
+    The full data pull takes ~5 minutes; once it finishes, reload this page (Cmd+Shift+R) to see the updated "Data last updated" timestamp and fresh values.
+    Each chart shows the current price + % change vs the previous data point to the right of its title.
   </div>
 
   
@@ -599,29 +640,12 @@
     </div>
         </div>
       </div>
-      <div class="metric" id="metric-nickel">
-        <h3>Nickel</h3>
-        <div class="zoom-bar" id="zoom-nickel"><button class="zoom-btn" data-months="1" onclick="applyZoom('nickel',1,this)">1M</button><button class="zoom-btn" data-months="3" onclick="applyZoom('nickel',3,this)">3M</button><button class="zoom-btn" data-months="6" onclick="applyZoom('nickel',6,this)">6M</button><button class="zoom-btn" data-months="12" onclick="applyZoom('nickel',12,this)">1Y</button><button class="zoom-btn" data-months="36" onclick="applyZoom('nickel',36,this)">3Y</button><button class="zoom-btn active" data-months="0" onclick="applyZoom('nickel',0,this)">All</button></div>
-        <div class="metric-body">
-          <div class="chart-container">
-            <div class="latest-overlay"><span class="lo-val">61.29</span> <span class="lo-unit">Index 2016=100</span><span class="lo-change up">▲ +13.7%</span></div>
-            <canvas id="chart-nickel"></canvas>
-          </div>
-          
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Date</th><th>Value</th></tr></thead>
-        <tbody><tr><td>6/04/26</td><td class='num'>61.29</td></tr><tr><td>23/03/26</td><td class='num'>53.89</td></tr><tr><td>9/03/26</td><td class='num'>55.36</td></tr><tr><td>23/02/26</td><td class='num'>64.34</td></tr><tr><td>9/02/26</td><td class='num'>60.63</td></tr><tr><td>26/01/26</td><td class='num'>58.31</td></tr><tr><td>12/01/26</td><td class='num'>56.21</td></tr><tr><td>29/12/25</td><td class='num'>52.36</td></tr><tr><td>15/12/25</td><td class='num'>49.13</td></tr><tr><td>1/12/25</td><td class='num'>48.39</td></tr><tr><td>17/11/25</td><td class='num'>44.21</td></tr><tr><td>3/11/25</td><td class='num'>44.67</td></tr><tr><td>20/10/25</td><td class='num'>45.27</td></tr><tr><td>6/10/25</td><td class='num'>43.61</td></tr><tr><td>22/09/25</td><td class='num'>43.00</td></tr><tr><td>8/09/25</td><td class='num'>41.70</td></tr><tr><td>25/08/25</td><td class='num'>40.36</td></tr><tr><td>11/08/25</td><td class='num'>39.60</td></tr><tr><td>28/07/25</td><td class='num'>37.56</td></tr><tr><td>14/07/25</td><td class='num'>38.59</td></tr><tr><td>30/06/25</td><td class='num'>38.52</td></tr><tr><td>16/06/25</td><td class='num'>34.49</td></tr><tr><td>2/06/25</td><td class='num'>36.47</td></tr><tr><td>19/05/25</td><td class='num'>35.68</td></tr><tr><td>5/05/25</td><td class='num'>34.46</td></tr><tr><td>21/04/25</td><td class='num'>34.55</td></tr><tr><td>7/04/25</td><td class='num'>32.32</td></tr><tr><td>24/03/25</td><td class='num'>35.17</td></tr><tr><td>10/03/25</td><td class='num'>36.42</td></tr><tr><td>24/02/25</td><td class='num'>34.67</td></tr><tr><td>10/02/25</td><td class='num'>36.11</td></tr><tr><td>27/01/25</td><td class='num'>34.26</td></tr><tr><td>13/01/25</td><td class='num'>35.08</td></tr><tr><td>30/12/24</td><td class='num'>33.92</td></tr><tr><td>16/12/24</td><td class='num'>33.51</td></tr><tr><td>2/12/24</td><td class='num'>36.89</td></tr><tr><td>18/11/24</td><td class='num'>37.32</td></tr><tr><td>4/11/24</td><td class='num'>38.92</td></tr><tr><td>21/10/24</td><td class='num'>38.60</td></tr><tr><td>7/10/24</td><td class='num'>40.02</td></tr><tr><td>23/09/24</td><td class='num'>41.14</td></tr><tr><td>9/09/24</td><td class='num'>36.31</td></tr><tr><td>26/08/24</td><td class='num'>37.19</td></tr><tr><td>12/08/24</td><td class='num'>36.45</td></tr><tr><td>29/07/24</td><td class='num'>36.33</td></tr><tr><td>15/07/24</td><td class='num'>37.89</td></tr><tr><td>1/07/24</td><td class='num'>40.09</td></tr><tr><td>17/06/24</td><td class='num'>38.74</td></tr><tr><td>3/06/24</td><td class='num'>39.60</td></tr><tr><td>20/05/24</td><td class='num'>41.69</td></tr><tr><td>6/05/24</td><td class='num'>41.25</td></tr><tr><td>22/04/24</td><td class='num'>40.62</td></tr><tr><td>8/04/24</td><td class='num'>40.24</td></tr><tr><td>25/03/24</td><td class='num'>39.13</td></tr><tr><td>11/03/24</td><td class='num'>37.98</td></tr><tr><td>26/02/24</td><td class='num'>37.47</td></tr><tr><td>12/02/24</td><td class='num'>37.72</td></tr><tr><td>29/01/24</td><td class='num'>37.72</td></tr><tr><td>15/01/24</td><td class='num'>37.16</td></tr><tr><td>1/01/24</td><td class='num'>39.42</td></tr><tr><td>18/12/23</td><td class='num'>39.27</td></tr><tr><td>4/12/23</td><td class='num'>37.12</td></tr><tr><td>20/11/23</td><td class='num'>37.16</td></tr><tr><td>6/11/23</td><td class='num'>34.87</td></tr><tr><td>23/10/23</td><td class='num'>34.40</td></tr><tr><td>9/10/23</td><td class='num'>35.22</td></tr><tr><td>25/09/23</td><td class='num'>36.43</td></tr><tr><td>11/09/23</td><td class='num'>37.52</td></tr><tr><td>28/08/23</td><td class='num'>37.44</td></tr><tr><td>14/08/23</td><td class='num'>35.41</td></tr><tr><td>31/07/23</td><td class='num'>38.15</td></tr><tr><td>17/07/23</td><td class='num'>38.37</td></tr><tr><td>3/07/23</td><td class='num'>36.75</td></tr><tr><td>19/06/23</td><td class='num'>36.42</td></tr><tr><td>5/06/23</td><td class='num'>36.15</td></tr><tr><td>22/05/23</td><td class='num'>34.84</td></tr><tr><td>8/05/23</td><td class='num'>35.76</td></tr><tr><td>24/04/23</td><td class='num'>37.07</td></tr><tr><td>10/04/23</td><td class='num'>38.89</td></tr><tr><td>27/03/23</td><td class='num'>38.39</td></tr><tr><td>13/03/23</td><td class='num'>35.65</td></tr><tr><td>27/02/23</td><td class='num'>40.72</td></tr><tr><td>13/02/23</td><td class='num'>39.80</td></tr><tr><td>30/01/23</td><td class='num'>40.91</td></tr><tr><td>16/01/23</td><td class='num'>41.71</td></tr><tr><td>2/01/23</td><td class='num'>39.23</td></tr><tr><td>19/12/22</td><td class='num'>37.06</td></tr><tr><td>5/12/22</td><td class='num'>37.83</td></tr><tr><td>21/11/22</td><td class='num'>36.30</td></tr><tr><td>7/11/22</td><td class='num'>36.21</td></tr><tr><td>24/10/22</td><td class='num'>31.11</td></tr><tr><td>10/10/22</td><td class='num'>29.96</td></tr><tr><td>26/09/22</td><td class='num'>29.82</td></tr><tr><td>12/09/22</td><td class='num'>31.47</td></tr><tr><td>29/08/22</td><td class='num'>31.17</td></tr><tr><td>15/08/22</td><td class='num'>32.97</td></tr><tr><td>1/08/22</td><td class='num'>32.19</td></tr><tr><td>18/07/22</td><td class='num'>29.91</td></tr><tr><td>4/07/22</td><td class='num'>30.55</td></tr><tr><td>20/06/22</td><td class='num'>32.09</td></tr><tr><td>6/06/22</td><td class='num'>35.48</td></tr><tr><td>23/05/22</td><td class='num'>39.10</td></tr><tr><td>9/05/22</td><td class='num'>34.86</td></tr><tr><td>25/04/22</td><td class='num'>38.34</td></tr><tr><td>11/04/22</td><td class='num'>43.71</td></tr><tr><td>28/03/22</td><td class='num'>44.26</td></tr><tr><td>14/03/22</td><td class='num'>40.92</td></tr><tr><td>28/02/22</td><td class='num'>41.99</td></tr><tr><td>14/02/22</td><td class='num'>39.09</td></tr><tr><td>31/01/22</td><td class='num'>37.37</td></tr><tr><td>17/01/22</td><td class='num'>37.05</td></tr><tr><td>3/01/22</td><td class='num'>37.15</td></tr><tr><td>20/12/21</td><td class='num'>35.50</td></tr><tr><td>6/12/21</td><td class='num'>34.26</td></tr><tr><td>22/11/21</td><td class='num'>32.57</td></tr><tr><td>8/11/21</td><td class='num'>34.48</td></tr><tr><td>25/10/21</td><td class='num'>34.25</td></tr><tr><td>11/10/21</td><td class='num'>35.86</td></tr><tr><td>27/09/21</td><td class='num'>33.18</td></tr><tr><td>13/09/21</td><td class='num'>34.08</td></tr><tr><td>30/08/21</td><td class='num'>37.19</td></tr><tr><td>16/08/21</td><td class='num'>34.44</td></tr><tr><td>2/08/21</td><td class='num'>37.65</td></tr><tr><td>19/07/21</td><td class='num'>36.84</td></tr><tr><td>5/07/21</td><td class='num'>37.13</td></tr><tr><td>21/06/21</td><td class='num'>36.75</td></tr><tr><td>7/06/21</td><td class='num'>37.52</td></tr><tr><td>24/05/21</td><td class='num'>37.82</td></tr><tr><td>10/05/21</td><td class='num'>38.38</td></tr><tr><td>26/04/21</td><td class='num'>36.43</td></tr><tr><td>12/04/21</td><td class='num'>36.41</td></tr><tr><td>29/03/21</td><td class='num'>33.84</td></tr><tr><td>15/03/21</td><td class='num'>33.16</td></tr><tr><td>1/03/21</td><td class='num'>33.86</td></tr><tr><td>15/02/21</td><td class='num'>34.11</td></tr><tr><td>1/02/21</td><td class='num'>30.53</td></tr><tr><td>18/01/21</td><td class='num'>31.21</td></tr><tr><td>4/01/21</td><td class='num'>32.74</td></tr><tr><td>21/12/20</td><td class='num'>28.97</td></tr><tr><td>7/12/20</td><td class='num'>28.53</td></tr><tr><td>23/11/20</td><td class='num'>25.86</td></tr><tr><td>9/11/20</td><td class='num'>23.47</td></tr><tr><td>26/10/20</td><td class='num'>20.93</td></tr><tr><td>12/10/20</td><td class='num'>21.73</td></tr><tr><td>28/09/20</td><td class='num'>21.04</td></tr><tr><td>14/09/20</td><td class='num'>22.51</td></tr><tr><td>31/08/20</td><td class='num'>21.93</td></tr><tr><td>17/08/20</td><td class='num'>21.58</td></tr><tr><td>3/08/20</td><td class='num'>21.56</td></tr><tr><td>20/07/20</td><td class='num'>20.86</td></tr><tr><td>6/07/20</td><td class='num'>20.09</td></tr><tr><td>22/06/20</td><td class='num'>18.88</td></tr><tr><td>8/06/20</td><td class='num'>19.27</td></tr><tr><td>25/05/20</td><td class='num'>18.21</td></tr><tr><td>11/05/20</td><td class='num'>16.08</td></tr><tr><td>27/04/20</td><td class='num'>15.78</td></tr><tr><td>13/04/20</td><td class='num'>16.09</td></tr><tr><td>30/03/20</td><td class='num'>14.41</td></tr><tr><td>16/03/20</td><td class='num'>12.76</td></tr><tr><td>2/03/20</td><td class='num'>17.89</td></tr><tr><td>17/02/20</td><td class='num'>21.02</td></tr><tr><td>3/02/20</td><td class='num'>21.28</td></tr><tr><td>20/01/20</td><td class='num'>22.23</td></tr><tr><td>6/01/20</td><td class='num'>22.72</td></tr><tr><td>23/12/19</td><td class='num'>23.05</td></tr><tr><td>9/12/19</td><td class='num'>22.81</td></tr><tr><td>25/11/19</td><td class='num'>21.43</td></tr><tr><td>11/11/19</td><td class='num'>21.25</td></tr><tr><td>28/10/19</td><td class='num'>21.18</td></tr><tr><td>14/10/19</td><td class='num'>20.02</td></tr><tr><td>30/09/19</td><td class='num'>19.58</td></tr><tr><td>16/09/19</td><td class='num'>20.68</td></tr><tr><td>2/09/19</td><td class='num'>20.01</td></tr><tr><td>19/08/19</td><td class='num'>18.55</td></tr><tr><td>5/08/19</td><td class='num'>19.45</td></tr><tr><td>22/07/19</td><td class='num'>21.85</td></tr><tr><td>8/07/19</td><td class='num'>22.28</td></tr><tr><td>24/06/19</td><td class='num'>22.85</td></tr><tr><td>10/06/19</td><td class='num'>21.78</td></tr><tr><td>27/05/19</td><td class='num'>20.55</td></tr><tr><td>13/05/19</td><td class='num'>21.22</td></tr><tr><td>29/04/19</td><td class='num'>22.53</td></tr><tr><td>15/04/19</td><td class='num'>23.64</td></tr><tr><td>1/04/19</td><td class='num'>23.81</td></tr><tr><td>18/03/19</td><td class='num'>22.33</td></tr><tr><td>4/03/19</td><td class='num'>21.84</td></tr><tr><td>18/02/19</td><td class='num'>22.69</td></tr><tr><td>4/02/19</td><td class='num'>21.32</td></tr><tr><td>21/01/19</td><td class='num'>21.16</td></tr><tr><td>7/01/19</td><td class='num'>20.74</td></tr><tr><td>24/12/18</td><td class='num'>19.77</td></tr><tr><td>10/12/18</td><td class='num'>19.79</td></tr><tr><td>26/11/18</td><td class='num'>20.19</td></tr><tr><td>12/11/18</td><td class='num'>21.28</td></tr><tr><td>29/10/18</td><td class='num'>21.79</td></tr><tr><td>15/10/18</td><td class='num'>21.43</td></tr><tr><td>1/10/18</td><td class='num'>22.61</td></tr><tr><td>17/09/18</td><td class='num'>23.28</td></tr><tr><td>3/09/18</td><td class='num'>21.08</td></tr><tr><td>20/08/18</td><td class='num'>21.98</td></tr><tr><td>6/08/18</td><td class='num'>22.38</td></tr><tr><td>23/07/18</td><td class='num'>23.58</td></tr><tr><td>9/07/18</td><td class='num'>22.79</td></tr><tr><td>25/06/18</td><td class='num'>23.20</td></tr><tr><td>11/06/18</td><td class='num'>24.18</td></tr><tr><td>28/05/18</td><td class='num'>24.65</td></tr><tr><td>14/05/18</td><td class='num'>25.26</td></tr><tr><td>30/04/18</td><td class='num'>24.43</td></tr><tr><td>16/04/18</td><td class='num'>25.00</td></tr><tr><td>2/04/18</td><td class='num'>23.02</td></tr><tr><td>19/03/18</td><td class='num'>23.18</td></tr><tr><td>5/03/18</td><td class='num'>24.32</td></tr><tr><td>19/02/18</td><td class='num'>25.57</td></tr><tr><td>5/02/18</td><td class='num'>24.13</td></tr><tr><td>22/01/18</td><td class='num'>26.31</td></tr><tr><td>8/01/18</td><td class='num'>26.50</td></tr><tr><td>25/12/17</td><td class='num'>24.25</td></tr><tr><td>11/12/17</td><td class='num'>22.51</td></tr><tr><td>27/11/17</td><td class='num'>21.79</td></tr><tr><td>13/11/17</td><td class='num'>21.43</td></tr><tr><td>30/10/17</td><td class='num'>22.42</td></tr><tr><td>16/10/17</td><td class='num'>22.29</td></tr><tr><td>2/10/17</td><td class='num'>22.03</td></tr><tr><td>18/09/17</td><td class='num'>21.46</td></tr><tr><td>4/09/17</td><td class='num'>22.23</td></tr><tr><td>21/08/17</td><td class='num'>21.75</td></tr><tr><td>7/08/17</td><td class='num'>20.54</td></tr><tr><td>24/07/17</td><td class='num'>20.74</td></tr><tr><td>10/07/17</td><td class='num'>20.04</td></tr><tr><td>26/06/17</td><td class='num'>18.66</td></tr><tr><td>12/06/17</td><td class='num'>17.58</td></tr><tr><td>29/05/17</td><td class='num'>18.08</td></tr><tr><td>15/05/17</td><td class='num'>18.39</td></tr><tr><td>1/05/17</td><td class='num'>17.96</td></tr><tr><td>17/04/17</td><td class='num'>18.39</td></tr><tr><td>3/04/17</td><td class='num'>19.04</td></tr><tr><td>20/03/17</td><td class='num'>19.15</td></tr><tr><td>6/03/17</td><td class='num'>18.63</td></tr><tr><td>20/02/17</td><td class='num'>19.53</td></tr><tr><td>6/02/17</td><td class='num'>20.35</td></tr><tr><td>23/01/17</td><td class='num'>20.28</td></tr><tr><td>9/01/17</td><td class='num'>19.35</td></tr><tr><td>26/12/16</td><td class='num'>17.53</td></tr><tr><td>12/12/16</td><td class='num'>17.84</td></tr><tr><td>28/11/16</td><td class='num'>18.35</td></tr><tr><td>14/11/16</td><td class='num'>17.12</td></tr><tr><td>31/10/16</td><td class='num'>15.97</td></tr><tr><td>17/10/16</td><td class='num'>15.96</td></tr><tr><td>3/10/16</td><td class='num'>15.75</td></tr><tr><td>19/09/16</td><td class='num'>15.44</td></tr><tr><td>5/09/16</td><td class='num'>14.75</td></tr><tr><td>22/08/16</td><td class='num'>14.93</td></tr><tr><td>8/08/16</td><td class='num'>15.15</td></tr><tr><td>25/07/16</td><td class='num'>15.11</td></tr><tr><td>11/07/16</td><td class='num'>15.01</td></tr><tr><td>27/06/16</td><td class='num'>13.75</td></tr><tr><td>13/06/16</td><td class='num'>13.23</td></tr><tr><td>30/05/16</td><td class='num'>13.17</td></tr><tr><td>16/05/16</td><td class='num'>12.82</td></tr><tr><td>2/05/16</td><td class='num'>13.66</td></tr><tr><td>18/04/16</td><td class='num'>14.87</td></tr></tbody>
-      </table>
-    </div>
-        </div>
-      </div>
       <div class="metric" id="metric-lithium">
-        <h3>Lithium</h3>
+        <h3>Lithium (LIT ETF)</h3>
         <div class="zoom-bar" id="zoom-lithium"><button class="zoom-btn" data-months="1" onclick="applyZoom('lithium',1,this)">1M</button><button class="zoom-btn" data-months="3" onclick="applyZoom('lithium',3,this)">3M</button><button class="zoom-btn" data-months="6" onclick="applyZoom('lithium',6,this)">6M</button><button class="zoom-btn" data-months="12" onclick="applyZoom('lithium',12,this)">1Y</button><button class="zoom-btn" data-months="36" onclick="applyZoom('lithium',36,this)">3Y</button><button class="zoom-btn active" data-months="0" onclick="applyZoom('lithium',0,this)">All</button></div>
         <div class="metric-body">
           <div class="chart-container">
-            <div class="latest-overlay"><span class="lo-val">77.90</span> <span class="lo-unit">USD/t</span><span class="lo-change up">▲ +8.3%</span></div>
+            <div class="latest-overlay"><span class="lo-val">77.90</span> <span class="lo-unit">USD/share</span><span class="lo-change up">▲ +8.3%</span></div>
             <canvas id="chart-lithium"></canvas>
           </div>
           
@@ -633,12 +657,29 @@
     </div>
         </div>
       </div>
+      <div class="metric" id="metric-nickel">
+        <h3>Metals & Mining (PICK ETF)</h3>
+        <div class="zoom-bar" id="zoom-nickel"><button class="zoom-btn" data-months="1" onclick="applyZoom('nickel',1,this)">1M</button><button class="zoom-btn" data-months="3" onclick="applyZoom('nickel',3,this)">3M</button><button class="zoom-btn" data-months="6" onclick="applyZoom('nickel',6,this)">6M</button><button class="zoom-btn" data-months="12" onclick="applyZoom('nickel',12,this)">1Y</button><button class="zoom-btn" data-months="36" onclick="applyZoom('nickel',36,this)">3Y</button><button class="zoom-btn active" data-months="0" onclick="applyZoom('nickel',0,this)">All</button></div>
+        <div class="metric-body">
+          <div class="chart-container">
+            <div class="latest-overlay"><span class="lo-val">61.29</span> <span class="lo-unit">USD/share</span><span class="lo-change up">▲ +13.7%</span></div>
+            <canvas id="chart-nickel"></canvas>
+          </div>
+          
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Value</th></tr></thead>
+        <tbody><tr><td>6/04/26</td><td class='num'>61.29</td></tr><tr><td>23/03/26</td><td class='num'>53.89</td></tr><tr><td>9/03/26</td><td class='num'>55.36</td></tr><tr><td>23/02/26</td><td class='num'>64.34</td></tr><tr><td>9/02/26</td><td class='num'>60.63</td></tr><tr><td>26/01/26</td><td class='num'>58.31</td></tr><tr><td>12/01/26</td><td class='num'>56.21</td></tr><tr><td>29/12/25</td><td class='num'>52.36</td></tr><tr><td>15/12/25</td><td class='num'>49.13</td></tr><tr><td>1/12/25</td><td class='num'>48.39</td></tr><tr><td>17/11/25</td><td class='num'>44.21</td></tr><tr><td>3/11/25</td><td class='num'>44.67</td></tr><tr><td>20/10/25</td><td class='num'>45.27</td></tr><tr><td>6/10/25</td><td class='num'>43.61</td></tr><tr><td>22/09/25</td><td class='num'>43.00</td></tr><tr><td>8/09/25</td><td class='num'>41.70</td></tr><tr><td>25/08/25</td><td class='num'>40.36</td></tr><tr><td>11/08/25</td><td class='num'>39.60</td></tr><tr><td>28/07/25</td><td class='num'>37.56</td></tr><tr><td>14/07/25</td><td class='num'>38.59</td></tr><tr><td>30/06/25</td><td class='num'>38.52</td></tr><tr><td>16/06/25</td><td class='num'>34.49</td></tr><tr><td>2/06/25</td><td class='num'>36.47</td></tr><tr><td>19/05/25</td><td class='num'>35.68</td></tr><tr><td>5/05/25</td><td class='num'>34.46</td></tr><tr><td>21/04/25</td><td class='num'>34.55</td></tr><tr><td>7/04/25</td><td class='num'>32.32</td></tr><tr><td>24/03/25</td><td class='num'>35.17</td></tr><tr><td>10/03/25</td><td class='num'>36.42</td></tr><tr><td>24/02/25</td><td class='num'>34.67</td></tr><tr><td>10/02/25</td><td class='num'>36.11</td></tr><tr><td>27/01/25</td><td class='num'>34.26</td></tr><tr><td>13/01/25</td><td class='num'>35.08</td></tr><tr><td>30/12/24</td><td class='num'>33.92</td></tr><tr><td>16/12/24</td><td class='num'>33.51</td></tr><tr><td>2/12/24</td><td class='num'>36.89</td></tr><tr><td>18/11/24</td><td class='num'>37.32</td></tr><tr><td>4/11/24</td><td class='num'>38.92</td></tr><tr><td>21/10/24</td><td class='num'>38.60</td></tr><tr><td>7/10/24</td><td class='num'>40.02</td></tr><tr><td>23/09/24</td><td class='num'>41.14</td></tr><tr><td>9/09/24</td><td class='num'>36.31</td></tr><tr><td>26/08/24</td><td class='num'>37.19</td></tr><tr><td>12/08/24</td><td class='num'>36.45</td></tr><tr><td>29/07/24</td><td class='num'>36.33</td></tr><tr><td>15/07/24</td><td class='num'>37.89</td></tr><tr><td>1/07/24</td><td class='num'>40.09</td></tr><tr><td>17/06/24</td><td class='num'>38.74</td></tr><tr><td>3/06/24</td><td class='num'>39.60</td></tr><tr><td>20/05/24</td><td class='num'>41.69</td></tr><tr><td>6/05/24</td><td class='num'>41.25</td></tr><tr><td>22/04/24</td><td class='num'>40.62</td></tr><tr><td>8/04/24</td><td class='num'>40.24</td></tr><tr><td>25/03/24</td><td class='num'>39.13</td></tr><tr><td>11/03/24</td><td class='num'>37.98</td></tr><tr><td>26/02/24</td><td class='num'>37.47</td></tr><tr><td>12/02/24</td><td class='num'>37.72</td></tr><tr><td>29/01/24</td><td class='num'>37.72</td></tr><tr><td>15/01/24</td><td class='num'>37.16</td></tr><tr><td>1/01/24</td><td class='num'>39.42</td></tr><tr><td>18/12/23</td><td class='num'>39.27</td></tr><tr><td>4/12/23</td><td class='num'>37.12</td></tr><tr><td>20/11/23</td><td class='num'>37.16</td></tr><tr><td>6/11/23</td><td class='num'>34.87</td></tr><tr><td>23/10/23</td><td class='num'>34.40</td></tr><tr><td>9/10/23</td><td class='num'>35.22</td></tr><tr><td>25/09/23</td><td class='num'>36.43</td></tr><tr><td>11/09/23</td><td class='num'>37.52</td></tr><tr><td>28/08/23</td><td class='num'>37.44</td></tr><tr><td>14/08/23</td><td class='num'>35.41</td></tr><tr><td>31/07/23</td><td class='num'>38.15</td></tr><tr><td>17/07/23</td><td class='num'>38.37</td></tr><tr><td>3/07/23</td><td class='num'>36.75</td></tr><tr><td>19/06/23</td><td class='num'>36.42</td></tr><tr><td>5/06/23</td><td class='num'>36.15</td></tr><tr><td>22/05/23</td><td class='num'>34.84</td></tr><tr><td>8/05/23</td><td class='num'>35.76</td></tr><tr><td>24/04/23</td><td class='num'>37.07</td></tr><tr><td>10/04/23</td><td class='num'>38.89</td></tr><tr><td>27/03/23</td><td class='num'>38.39</td></tr><tr><td>13/03/23</td><td class='num'>35.65</td></tr><tr><td>27/02/23</td><td class='num'>40.72</td></tr><tr><td>13/02/23</td><td class='num'>39.80</td></tr><tr><td>30/01/23</td><td class='num'>40.91</td></tr><tr><td>16/01/23</td><td class='num'>41.71</td></tr><tr><td>2/01/23</td><td class='num'>39.23</td></tr><tr><td>19/12/22</td><td class='num'>37.06</td></tr><tr><td>5/12/22</td><td class='num'>37.83</td></tr><tr><td>21/11/22</td><td class='num'>36.30</td></tr><tr><td>7/11/22</td><td class='num'>36.21</td></tr><tr><td>24/10/22</td><td class='num'>31.11</td></tr><tr><td>10/10/22</td><td class='num'>29.96</td></tr><tr><td>26/09/22</td><td class='num'>29.82</td></tr><tr><td>12/09/22</td><td class='num'>31.47</td></tr><tr><td>29/08/22</td><td class='num'>31.17</td></tr><tr><td>15/08/22</td><td class='num'>32.97</td></tr><tr><td>1/08/22</td><td class='num'>32.19</td></tr><tr><td>18/07/22</td><td class='num'>29.91</td></tr><tr><td>4/07/22</td><td class='num'>30.55</td></tr><tr><td>20/06/22</td><td class='num'>32.09</td></tr><tr><td>6/06/22</td><td class='num'>35.48</td></tr><tr><td>23/05/22</td><td class='num'>39.10</td></tr><tr><td>9/05/22</td><td class='num'>34.86</td></tr><tr><td>25/04/22</td><td class='num'>38.34</td></tr><tr><td>11/04/22</td><td class='num'>43.71</td></tr><tr><td>28/03/22</td><td class='num'>44.26</td></tr><tr><td>14/03/22</td><td class='num'>40.92</td></tr><tr><td>28/02/22</td><td class='num'>41.99</td></tr><tr><td>14/02/22</td><td class='num'>39.09</td></tr><tr><td>31/01/22</td><td class='num'>37.37</td></tr><tr><td>17/01/22</td><td class='num'>37.05</td></tr><tr><td>3/01/22</td><td class='num'>37.15</td></tr><tr><td>20/12/21</td><td class='num'>35.50</td></tr><tr><td>6/12/21</td><td class='num'>34.26</td></tr><tr><td>22/11/21</td><td class='num'>32.57</td></tr><tr><td>8/11/21</td><td class='num'>34.48</td></tr><tr><td>25/10/21</td><td class='num'>34.25</td></tr><tr><td>11/10/21</td><td class='num'>35.86</td></tr><tr><td>27/09/21</td><td class='num'>33.18</td></tr><tr><td>13/09/21</td><td class='num'>34.08</td></tr><tr><td>30/08/21</td><td class='num'>37.19</td></tr><tr><td>16/08/21</td><td class='num'>34.44</td></tr><tr><td>2/08/21</td><td class='num'>37.65</td></tr><tr><td>19/07/21</td><td class='num'>36.84</td></tr><tr><td>5/07/21</td><td class='num'>37.13</td></tr><tr><td>21/06/21</td><td class='num'>36.75</td></tr><tr><td>7/06/21</td><td class='num'>37.52</td></tr><tr><td>24/05/21</td><td class='num'>37.82</td></tr><tr><td>10/05/21</td><td class='num'>38.38</td></tr><tr><td>26/04/21</td><td class='num'>36.43</td></tr><tr><td>12/04/21</td><td class='num'>36.41</td></tr><tr><td>29/03/21</td><td class='num'>33.84</td></tr><tr><td>15/03/21</td><td class='num'>33.16</td></tr><tr><td>1/03/21</td><td class='num'>33.86</td></tr><tr><td>15/02/21</td><td class='num'>34.11</td></tr><tr><td>1/02/21</td><td class='num'>30.53</td></tr><tr><td>18/01/21</td><td class='num'>31.21</td></tr><tr><td>4/01/21</td><td class='num'>32.74</td></tr><tr><td>21/12/20</td><td class='num'>28.97</td></tr><tr><td>7/12/20</td><td class='num'>28.53</td></tr><tr><td>23/11/20</td><td class='num'>25.86</td></tr><tr><td>9/11/20</td><td class='num'>23.47</td></tr><tr><td>26/10/20</td><td class='num'>20.93</td></tr><tr><td>12/10/20</td><td class='num'>21.73</td></tr><tr><td>28/09/20</td><td class='num'>21.04</td></tr><tr><td>14/09/20</td><td class='num'>22.51</td></tr><tr><td>31/08/20</td><td class='num'>21.93</td></tr><tr><td>17/08/20</td><td class='num'>21.58</td></tr><tr><td>3/08/20</td><td class='num'>21.56</td></tr><tr><td>20/07/20</td><td class='num'>20.86</td></tr><tr><td>6/07/20</td><td class='num'>20.09</td></tr><tr><td>22/06/20</td><td class='num'>18.88</td></tr><tr><td>8/06/20</td><td class='num'>19.27</td></tr><tr><td>25/05/20</td><td class='num'>18.21</td></tr><tr><td>11/05/20</td><td class='num'>16.08</td></tr><tr><td>27/04/20</td><td class='num'>15.78</td></tr><tr><td>13/04/20</td><td class='num'>16.09</td></tr><tr><td>30/03/20</td><td class='num'>14.41</td></tr><tr><td>16/03/20</td><td class='num'>12.76</td></tr><tr><td>2/03/20</td><td class='num'>17.89</td></tr><tr><td>17/02/20</td><td class='num'>21.02</td></tr><tr><td>3/02/20</td><td class='num'>21.28</td></tr><tr><td>20/01/20</td><td class='num'>22.23</td></tr><tr><td>6/01/20</td><td class='num'>22.72</td></tr><tr><td>23/12/19</td><td class='num'>23.05</td></tr><tr><td>9/12/19</td><td class='num'>22.81</td></tr><tr><td>25/11/19</td><td class='num'>21.43</td></tr><tr><td>11/11/19</td><td class='num'>21.25</td></tr><tr><td>28/10/19</td><td class='num'>21.18</td></tr><tr><td>14/10/19</td><td class='num'>20.02</td></tr><tr><td>30/09/19</td><td class='num'>19.58</td></tr><tr><td>16/09/19</td><td class='num'>20.68</td></tr><tr><td>2/09/19</td><td class='num'>20.01</td></tr><tr><td>19/08/19</td><td class='num'>18.55</td></tr><tr><td>5/08/19</td><td class='num'>19.45</td></tr><tr><td>22/07/19</td><td class='num'>21.85</td></tr><tr><td>8/07/19</td><td class='num'>22.28</td></tr><tr><td>24/06/19</td><td class='num'>22.85</td></tr><tr><td>10/06/19</td><td class='num'>21.78</td></tr><tr><td>27/05/19</td><td class='num'>20.55</td></tr><tr><td>13/05/19</td><td class='num'>21.22</td></tr><tr><td>29/04/19</td><td class='num'>22.53</td></tr><tr><td>15/04/19</td><td class='num'>23.64</td></tr><tr><td>1/04/19</td><td class='num'>23.81</td></tr><tr><td>18/03/19</td><td class='num'>22.33</td></tr><tr><td>4/03/19</td><td class='num'>21.84</td></tr><tr><td>18/02/19</td><td class='num'>22.69</td></tr><tr><td>4/02/19</td><td class='num'>21.32</td></tr><tr><td>21/01/19</td><td class='num'>21.16</td></tr><tr><td>7/01/19</td><td class='num'>20.74</td></tr><tr><td>24/12/18</td><td class='num'>19.77</td></tr><tr><td>10/12/18</td><td class='num'>19.79</td></tr><tr><td>26/11/18</td><td class='num'>20.19</td></tr><tr><td>12/11/18</td><td class='num'>21.28</td></tr><tr><td>29/10/18</td><td class='num'>21.79</td></tr><tr><td>15/10/18</td><td class='num'>21.43</td></tr><tr><td>1/10/18</td><td class='num'>22.61</td></tr><tr><td>17/09/18</td><td class='num'>23.28</td></tr><tr><td>3/09/18</td><td class='num'>21.08</td></tr><tr><td>20/08/18</td><td class='num'>21.98</td></tr><tr><td>6/08/18</td><td class='num'>22.38</td></tr><tr><td>23/07/18</td><td class='num'>23.58</td></tr><tr><td>9/07/18</td><td class='num'>22.79</td></tr><tr><td>25/06/18</td><td class='num'>23.20</td></tr><tr><td>11/06/18</td><td class='num'>24.18</td></tr><tr><td>28/05/18</td><td class='num'>24.65</td></tr><tr><td>14/05/18</td><td class='num'>25.26</td></tr><tr><td>30/04/18</td><td class='num'>24.43</td></tr><tr><td>16/04/18</td><td class='num'>25.00</td></tr><tr><td>2/04/18</td><td class='num'>23.02</td></tr><tr><td>19/03/18</td><td class='num'>23.18</td></tr><tr><td>5/03/18</td><td class='num'>24.32</td></tr><tr><td>19/02/18</td><td class='num'>25.57</td></tr><tr><td>5/02/18</td><td class='num'>24.13</td></tr><tr><td>22/01/18</td><td class='num'>26.31</td></tr><tr><td>8/01/18</td><td class='num'>26.50</td></tr><tr><td>25/12/17</td><td class='num'>24.25</td></tr><tr><td>11/12/17</td><td class='num'>22.51</td></tr><tr><td>27/11/17</td><td class='num'>21.79</td></tr><tr><td>13/11/17</td><td class='num'>21.43</td></tr><tr><td>30/10/17</td><td class='num'>22.42</td></tr><tr><td>16/10/17</td><td class='num'>22.29</td></tr><tr><td>2/10/17</td><td class='num'>22.03</td></tr><tr><td>18/09/17</td><td class='num'>21.46</td></tr><tr><td>4/09/17</td><td class='num'>22.23</td></tr><tr><td>21/08/17</td><td class='num'>21.75</td></tr><tr><td>7/08/17</td><td class='num'>20.54</td></tr><tr><td>24/07/17</td><td class='num'>20.74</td></tr><tr><td>10/07/17</td><td class='num'>20.04</td></tr><tr><td>26/06/17</td><td class='num'>18.66</td></tr><tr><td>12/06/17</td><td class='num'>17.58</td></tr><tr><td>29/05/17</td><td class='num'>18.08</td></tr><tr><td>15/05/17</td><td class='num'>18.39</td></tr><tr><td>1/05/17</td><td class='num'>17.96</td></tr><tr><td>17/04/17</td><td class='num'>18.39</td></tr><tr><td>3/04/17</td><td class='num'>19.04</td></tr><tr><td>20/03/17</td><td class='num'>19.15</td></tr><tr><td>6/03/17</td><td class='num'>18.63</td></tr><tr><td>20/02/17</td><td class='num'>19.53</td></tr><tr><td>6/02/17</td><td class='num'>20.35</td></tr><tr><td>23/01/17</td><td class='num'>20.28</td></tr><tr><td>9/01/17</td><td class='num'>19.35</td></tr><tr><td>26/12/16</td><td class='num'>17.53</td></tr><tr><td>12/12/16</td><td class='num'>17.84</td></tr><tr><td>28/11/16</td><td class='num'>18.35</td></tr><tr><td>14/11/16</td><td class='num'>17.12</td></tr><tr><td>31/10/16</td><td class='num'>15.97</td></tr><tr><td>17/10/16</td><td class='num'>15.96</td></tr><tr><td>3/10/16</td><td class='num'>15.75</td></tr><tr><td>19/09/16</td><td class='num'>15.44</td></tr><tr><td>5/09/16</td><td class='num'>14.75</td></tr><tr><td>22/08/16</td><td class='num'>14.93</td></tr><tr><td>8/08/16</td><td class='num'>15.15</td></tr><tr><td>25/07/16</td><td class='num'>15.11</td></tr><tr><td>11/07/16</td><td class='num'>15.01</td></tr><tr><td>27/06/16</td><td class='num'>13.75</td></tr><tr><td>13/06/16</td><td class='num'>13.23</td></tr><tr><td>30/05/16</td><td class='num'>13.17</td></tr><tr><td>16/05/16</td><td class='num'>12.82</td></tr><tr><td>2/05/16</td><td class='num'>13.66</td></tr><tr><td>18/04/16</td><td class='num'>14.87</td></tr></tbody>
+      </table>
+    </div>
+        </div>
+      </div>
       <div class="metric" id="metric-cobalt">
-        <h3>Cobalt</h3>
+        <h3>Strategic Metals (REMX ETF)</h3>
         <div class="zoom-bar" id="zoom-cobalt"><button class="zoom-btn" data-months="1" onclick="applyZoom('cobalt',1,this)">1M</button><button class="zoom-btn" data-months="3" onclick="applyZoom('cobalt',3,this)">3M</button><button class="zoom-btn" data-months="6" onclick="applyZoom('cobalt',6,this)">6M</button><button class="zoom-btn" data-months="12" onclick="applyZoom('cobalt',12,this)">1Y</button><button class="zoom-btn" data-months="36" onclick="applyZoom('cobalt',36,this)">3Y</button><button class="zoom-btn active" data-months="0" onclick="applyZoom('cobalt',0,this)">All</button></div>
         <div class="metric-body">
           <div class="chart-container">
-            <div class="latest-overlay"><span class="lo-val">94.50</span> <span class="lo-unit">USD/t</span><span class="lo-change up">▲ +9.8%</span></div>
+            <div class="latest-overlay"><span class="lo-val">94.50</span> <span class="lo-unit">USD/share</span><span class="lo-change up">▲ +9.8%</span></div>
             <canvas id="chart-cobalt"></canvas>
           </div>
           
@@ -1447,41 +1488,6 @@ window.addEventListener('DOMContentLoaded', function() {
   })();
 
   (function() {
-    var ctx = document.getElementById('chart-nickel').getContext('2d');
-    var ch = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ["18/04/16", "2/05/16", "16/05/16", "30/05/16", "13/06/16", "27/06/16", "11/07/16", "25/07/16", "8/08/16", "22/08/16", "5/09/16", "19/09/16", "3/10/16", "17/10/16", "31/10/16", "14/11/16", "28/11/16", "12/12/16", "26/12/16", "9/01/17", "23/01/17", "6/02/17", "20/02/17", "6/03/17", "20/03/17", "3/04/17", "17/04/17", "1/05/17", "15/05/17", "29/05/17", "12/06/17", "26/06/17", "10/07/17", "24/07/17", "7/08/17", "21/08/17", "4/09/17", "18/09/17", "2/10/17", "16/10/17", "30/10/17", "13/11/17", "27/11/17", "11/12/17", "25/12/17", "8/01/18", "22/01/18", "5/02/18", "19/02/18", "5/03/18", "19/03/18", "2/04/18", "16/04/18", "30/04/18", "14/05/18", "28/05/18", "11/06/18", "25/06/18", "9/07/18", "23/07/18", "6/08/18", "20/08/18", "3/09/18", "17/09/18", "1/10/18", "15/10/18", "29/10/18", "12/11/18", "26/11/18", "10/12/18", "24/12/18", "7/01/19", "21/01/19", "4/02/19", "18/02/19", "4/03/19", "18/03/19", "1/04/19", "15/04/19", "29/04/19", "13/05/19", "27/05/19", "10/06/19", "24/06/19", "8/07/19", "22/07/19", "5/08/19", "19/08/19", "2/09/19", "16/09/19", "30/09/19", "14/10/19", "28/10/19", "11/11/19", "25/11/19", "9/12/19", "23/12/19", "6/01/20", "20/01/20", "3/02/20", "17/02/20", "2/03/20", "16/03/20", "30/03/20", "13/04/20", "27/04/20", "11/05/20", "25/05/20", "8/06/20", "22/06/20", "6/07/20", "20/07/20", "3/08/20", "17/08/20", "31/08/20", "14/09/20", "28/09/20", "12/10/20", "26/10/20", "9/11/20", "23/11/20", "7/12/20", "21/12/20", "4/01/21", "18/01/21", "1/02/21", "15/02/21", "1/03/21", "15/03/21", "29/03/21", "12/04/21", "26/04/21", "10/05/21", "24/05/21", "7/06/21", "21/06/21", "5/07/21", "19/07/21", "2/08/21", "16/08/21", "30/08/21", "13/09/21", "27/09/21", "11/10/21", "25/10/21", "8/11/21", "22/11/21", "6/12/21", "20/12/21", "3/01/22", "17/01/22", "31/01/22", "14/02/22", "28/02/22", "14/03/22", "28/03/22", "11/04/22", "25/04/22", "9/05/22", "23/05/22", "6/06/22", "20/06/22", "4/07/22", "18/07/22", "1/08/22", "15/08/22", "29/08/22", "12/09/22", "26/09/22", "10/10/22", "24/10/22", "7/11/22", "21/11/22", "5/12/22", "19/12/22", "2/01/23", "16/01/23", "30/01/23", "13/02/23", "27/02/23", "13/03/23", "27/03/23", "10/04/23", "24/04/23", "8/05/23", "22/05/23", "5/06/23", "19/06/23", "3/07/23", "17/07/23", "31/07/23", "14/08/23", "28/08/23", "11/09/23", "25/09/23", "9/10/23", "23/10/23", "6/11/23", "20/11/23", "4/12/23", "18/12/23", "1/01/24", "15/01/24", "29/01/24", "12/02/24", "26/02/24", "11/03/24", "25/03/24", "8/04/24", "22/04/24", "6/05/24", "20/05/24", "3/06/24", "17/06/24", "1/07/24", "15/07/24", "29/07/24", "12/08/24", "26/08/24", "9/09/24", "23/09/24", "7/10/24", "21/10/24", "4/11/24", "18/11/24", "2/12/24", "16/12/24", "30/12/24", "13/01/25", "27/01/25", "10/02/25", "24/02/25", "10/03/25", "24/03/25", "7/04/25", "21/04/25", "5/05/25", "19/05/25", "2/06/25", "16/06/25", "30/06/25", "14/07/25", "28/07/25", "11/08/25", "25/08/25", "8/09/25", "22/09/25", "6/10/25", "20/10/25", "3/11/25", "17/11/25", "1/12/25", "15/12/25", "29/12/25", "12/01/26", "26/01/26", "9/02/26", "23/02/26", "9/03/26", "23/03/26", "6/04/26"],
-        datasets: [{
-          label: "Metals & Mining (PICK ETF proxy)",
-          data: [14.8705, 13.6593, 12.8249, 13.1748, 13.2287, 13.754, 15.0105, 15.1051, 15.1456, 14.9294, 14.7538, 15.4428, 15.7536, 15.9562, 15.9698, 17.1249, 18.3477, 17.841, 17.5321, 19.3507, 20.2838, 20.3451, 19.5346, 18.6287, 19.1532, 19.0442, 18.3903, 17.9612, 18.3903, 18.077, 17.5798, 18.6556, 20.0381, 20.7431, 20.5426, 21.7453, 22.2292, 21.4619, 22.0287, 22.2914, 22.4158, 21.4343, 21.7937, 22.5126, 24.2546, 26.5035, 26.3073, 24.1349, 25.5715, 24.3241, 23.1818, 23.0207, 24.9969, 24.4292, 25.2561, 24.6535, 24.1769, 23.1967, 22.7915, 23.5806, 22.3792, 21.9811, 21.0782, 23.282, 22.6067, 21.4337, 21.7891, 21.2844, 20.1896, 19.7915, 19.7716, 20.7375, 21.1619, 21.3229, 22.6913, 21.8351, 22.3254, 23.8108, 23.6425, 22.5303, 21.2205, 20.5473, 21.7839, 22.853, 22.2796, 21.8496, 19.4503, 18.5525, 20.0086, 20.6801, 19.5786, 20.0162, 21.1781, 21.246, 21.4271, 22.8077, 23.0494, 22.723, 22.2281, 21.2845, 21.0215, 17.8892, 12.7614, 14.4088, 16.0871, 15.7777, 16.0794, 18.214, 19.2659, 18.8835, 20.0927, 20.8621, 21.5609, 21.5845, 21.93, 22.511, 21.0427, 21.7337, 20.9328, 23.4689, 25.8637, 28.5254, 28.9732, 32.743, 31.208, 30.532, 34.1109, 33.8644, 33.1565, 33.8405, 36.4094, 36.4332, 38.3817, 37.8171, 37.5228, 36.747, 37.1345, 36.8439, 37.6511, 34.4382, 37.191, 34.083, 33.1789, 35.859, 34.2525, 34.4786, 32.5734, 34.2606, 35.4966, 37.1472, 37.046, 37.3664, 39.0948, 41.9866, 40.9243, 44.263, 43.7066, 38.336, 34.8624, 39.1032, 35.4779, 32.0949, 30.5524, 29.9126, 32.1913, 32.9713, 31.1659, 31.4726, 29.8249, 29.9564, 31.1133, 36.2053, 36.3017, 37.8267, 37.0619, 39.2278, 41.7081, 40.9083, 39.8029, 40.7196, 35.651, 38.392, 38.8863, 37.0709, 35.7588, 34.8422, 36.1542, 36.4249, 36.7548, 38.3676, 38.1476, 35.4078, 37.4421, 37.5154, 36.4341, 35.2153, 34.3998, 34.8671, 37.158, 37.1213, 39.2656, 39.42, 37.1586, 37.7216, 37.7216, 37.4683, 37.975, 39.1291, 40.2364, 40.6211, 41.2498, 41.6908, 39.5983, 38.7374, 40.0859, 37.8922, 36.3347, 36.4487, 37.1894, 36.3062, 41.1401, 40.0194, 38.6044, 38.9178, 37.3224, 36.8855, 33.5141, 33.9162, 35.0754, 34.2639, 36.109, 34.6696, 36.4181, 35.172, 32.3223, 34.5537, 34.4571, 35.6839, 36.4664, 34.4861, 38.5196, 38.5886, 37.5648, 39.6025, 40.3605, 41.6993, 42.9987, 43.609, 45.2726, 44.6722, 44.2095, 48.3932, 49.1315, 52.36, 56.21, 58.31, 60.63, 64.34, 55.36, 53.89, 61.29],
-          borderColor: '#4FC3F7',
-          backgroundColor: 'rgba(79,195,247,0.07)',
-          borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { labels: { color: '#cdd6f4' } },
-          latestValueLabel: { unit: "Index 2016=100" },
-          tooltip: { callbacks: { label: function(c) {
-            return c.dataset.label + ': ' + c.parsed.y.toLocaleString() + ' Index 2016=100';
-          } } }
-        },
-        scales: {
-          x: { ticks: { color: '#a6adc8', maxTicksLimit: 10 }, grid: { color: '#313244' } },
-          y: { ticks: { color: '#a6adc8' }, grid: { color: '#313244' },
-                title: { display: true, text: "Index 2016=100", color: '#a6adc8' } }
-        }
-      }
-    });
-    storeOrig('nickel', ch);
-  })();
-
-  (function() {
     var ctx = document.getElementById('chart-lithium').getContext('2d');
     var ch = new Chart(ctx, {
       type: 'line',
@@ -1501,19 +1507,54 @@ window.addEventListener('DOMContentLoaded', function() {
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { labels: { color: '#cdd6f4' } },
-          latestValueLabel: { unit: "USD/t" },
+          latestValueLabel: { unit: "USD/share" },
           tooltip: { callbacks: { label: function(c) {
-            return c.dataset.label + ': ' + c.parsed.y.toLocaleString() + ' USD/t';
+            return c.dataset.label + ': ' + c.parsed.y.toLocaleString() + ' USD/share';
           } } }
         },
         scales: {
           x: { ticks: { color: '#a6adc8', maxTicksLimit: 10 }, grid: { color: '#313244' } },
           y: { ticks: { color: '#a6adc8' }, grid: { color: '#313244' },
-                title: { display: true, text: "USD/t", color: '#a6adc8' } }
+                title: { display: true, text: "USD/share", color: '#a6adc8' } }
         }
       }
     });
     storeOrig('lithium', ch);
+  })();
+
+  (function() {
+    var ctx = document.getElementById('chart-nickel').getContext('2d');
+    var ch = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ["18/04/16", "2/05/16", "16/05/16", "30/05/16", "13/06/16", "27/06/16", "11/07/16", "25/07/16", "8/08/16", "22/08/16", "5/09/16", "19/09/16", "3/10/16", "17/10/16", "31/10/16", "14/11/16", "28/11/16", "12/12/16", "26/12/16", "9/01/17", "23/01/17", "6/02/17", "20/02/17", "6/03/17", "20/03/17", "3/04/17", "17/04/17", "1/05/17", "15/05/17", "29/05/17", "12/06/17", "26/06/17", "10/07/17", "24/07/17", "7/08/17", "21/08/17", "4/09/17", "18/09/17", "2/10/17", "16/10/17", "30/10/17", "13/11/17", "27/11/17", "11/12/17", "25/12/17", "8/01/18", "22/01/18", "5/02/18", "19/02/18", "5/03/18", "19/03/18", "2/04/18", "16/04/18", "30/04/18", "14/05/18", "28/05/18", "11/06/18", "25/06/18", "9/07/18", "23/07/18", "6/08/18", "20/08/18", "3/09/18", "17/09/18", "1/10/18", "15/10/18", "29/10/18", "12/11/18", "26/11/18", "10/12/18", "24/12/18", "7/01/19", "21/01/19", "4/02/19", "18/02/19", "4/03/19", "18/03/19", "1/04/19", "15/04/19", "29/04/19", "13/05/19", "27/05/19", "10/06/19", "24/06/19", "8/07/19", "22/07/19", "5/08/19", "19/08/19", "2/09/19", "16/09/19", "30/09/19", "14/10/19", "28/10/19", "11/11/19", "25/11/19", "9/12/19", "23/12/19", "6/01/20", "20/01/20", "3/02/20", "17/02/20", "2/03/20", "16/03/20", "30/03/20", "13/04/20", "27/04/20", "11/05/20", "25/05/20", "8/06/20", "22/06/20", "6/07/20", "20/07/20", "3/08/20", "17/08/20", "31/08/20", "14/09/20", "28/09/20", "12/10/20", "26/10/20", "9/11/20", "23/11/20", "7/12/20", "21/12/20", "4/01/21", "18/01/21", "1/02/21", "15/02/21", "1/03/21", "15/03/21", "29/03/21", "12/04/21", "26/04/21", "10/05/21", "24/05/21", "7/06/21", "21/06/21", "5/07/21", "19/07/21", "2/08/21", "16/08/21", "30/08/21", "13/09/21", "27/09/21", "11/10/21", "25/10/21", "8/11/21", "22/11/21", "6/12/21", "20/12/21", "3/01/22", "17/01/22", "31/01/22", "14/02/22", "28/02/22", "14/03/22", "28/03/22", "11/04/22", "25/04/22", "9/05/22", "23/05/22", "6/06/22", "20/06/22", "4/07/22", "18/07/22", "1/08/22", "15/08/22", "29/08/22", "12/09/22", "26/09/22", "10/10/22", "24/10/22", "7/11/22", "21/11/22", "5/12/22", "19/12/22", "2/01/23", "16/01/23", "30/01/23", "13/02/23", "27/02/23", "13/03/23", "27/03/23", "10/04/23", "24/04/23", "8/05/23", "22/05/23", "5/06/23", "19/06/23", "3/07/23", "17/07/23", "31/07/23", "14/08/23", "28/08/23", "11/09/23", "25/09/23", "9/10/23", "23/10/23", "6/11/23", "20/11/23", "4/12/23", "18/12/23", "1/01/24", "15/01/24", "29/01/24", "12/02/24", "26/02/24", "11/03/24", "25/03/24", "8/04/24", "22/04/24", "6/05/24", "20/05/24", "3/06/24", "17/06/24", "1/07/24", "15/07/24", "29/07/24", "12/08/24", "26/08/24", "9/09/24", "23/09/24", "7/10/24", "21/10/24", "4/11/24", "18/11/24", "2/12/24", "16/12/24", "30/12/24", "13/01/25", "27/01/25", "10/02/25", "24/02/25", "10/03/25", "24/03/25", "7/04/25", "21/04/25", "5/05/25", "19/05/25", "2/06/25", "16/06/25", "30/06/25", "14/07/25", "28/07/25", "11/08/25", "25/08/25", "8/09/25", "22/09/25", "6/10/25", "20/10/25", "3/11/25", "17/11/25", "1/12/25", "15/12/25", "29/12/25", "12/01/26", "26/01/26", "9/02/26", "23/02/26", "9/03/26", "23/03/26", "6/04/26"],
+        datasets: [{
+          label: "Metals & Mining (PICK ETF proxy)",
+          data: [14.8705, 13.6593, 12.8249, 13.1748, 13.2287, 13.754, 15.0105, 15.1051, 15.1456, 14.9294, 14.7538, 15.4428, 15.7536, 15.9562, 15.9698, 17.1249, 18.3477, 17.841, 17.5321, 19.3507, 20.2838, 20.3451, 19.5346, 18.6287, 19.1532, 19.0442, 18.3903, 17.9612, 18.3903, 18.077, 17.5798, 18.6556, 20.0381, 20.7431, 20.5426, 21.7453, 22.2292, 21.4619, 22.0287, 22.2914, 22.4158, 21.4343, 21.7937, 22.5126, 24.2546, 26.5035, 26.3073, 24.1349, 25.5715, 24.3241, 23.1818, 23.0207, 24.9969, 24.4292, 25.2561, 24.6535, 24.1769, 23.1967, 22.7915, 23.5806, 22.3792, 21.9811, 21.0782, 23.282, 22.6067, 21.4337, 21.7891, 21.2844, 20.1896, 19.7915, 19.7716, 20.7375, 21.1619, 21.3229, 22.6913, 21.8351, 22.3254, 23.8108, 23.6425, 22.5303, 21.2205, 20.5473, 21.7839, 22.853, 22.2796, 21.8496, 19.4503, 18.5525, 20.0086, 20.6801, 19.5786, 20.0162, 21.1781, 21.246, 21.4271, 22.8077, 23.0494, 22.723, 22.2281, 21.2845, 21.0215, 17.8892, 12.7614, 14.4088, 16.0871, 15.7777, 16.0794, 18.214, 19.2659, 18.8835, 20.0927, 20.8621, 21.5609, 21.5845, 21.93, 22.511, 21.0427, 21.7337, 20.9328, 23.4689, 25.8637, 28.5254, 28.9732, 32.743, 31.208, 30.532, 34.1109, 33.8644, 33.1565, 33.8405, 36.4094, 36.4332, 38.3817, 37.8171, 37.5228, 36.747, 37.1345, 36.8439, 37.6511, 34.4382, 37.191, 34.083, 33.1789, 35.859, 34.2525, 34.4786, 32.5734, 34.2606, 35.4966, 37.1472, 37.046, 37.3664, 39.0948, 41.9866, 40.9243, 44.263, 43.7066, 38.336, 34.8624, 39.1032, 35.4779, 32.0949, 30.5524, 29.9126, 32.1913, 32.9713, 31.1659, 31.4726, 29.8249, 29.9564, 31.1133, 36.2053, 36.3017, 37.8267, 37.0619, 39.2278, 41.7081, 40.9083, 39.8029, 40.7196, 35.651, 38.392, 38.8863, 37.0709, 35.7588, 34.8422, 36.1542, 36.4249, 36.7548, 38.3676, 38.1476, 35.4078, 37.4421, 37.5154, 36.4341, 35.2153, 34.3998, 34.8671, 37.158, 37.1213, 39.2656, 39.42, 37.1586, 37.7216, 37.7216, 37.4683, 37.975, 39.1291, 40.2364, 40.6211, 41.2498, 41.6908, 39.5983, 38.7374, 40.0859, 37.8922, 36.3347, 36.4487, 37.1894, 36.3062, 41.1401, 40.0194, 38.6044, 38.9178, 37.3224, 36.8855, 33.5141, 33.9162, 35.0754, 34.2639, 36.109, 34.6696, 36.4181, 35.172, 32.3223, 34.5537, 34.4571, 35.6839, 36.4664, 34.4861, 38.5196, 38.5886, 37.5648, 39.6025, 40.3605, 41.6993, 42.9987, 43.609, 45.2726, 44.6722, 44.2095, 48.3932, 49.1315, 52.36, 56.21, 58.31, 60.63, 64.34, 55.36, 53.89, 61.29],
+          borderColor: '#4FC3F7',
+          backgroundColor: 'rgba(79,195,247,0.07)',
+          borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: '#cdd6f4' } },
+          latestValueLabel: { unit: "USD/share" },
+          tooltip: { callbacks: { label: function(c) {
+            return c.dataset.label + ': ' + c.parsed.y.toLocaleString() + ' USD/share';
+          } } }
+        },
+        scales: {
+          x: { ticks: { color: '#a6adc8', maxTicksLimit: 10 }, grid: { color: '#313244' } },
+          y: { ticks: { color: '#a6adc8' }, grid: { color: '#313244' },
+                title: { display: true, text: "USD/share", color: '#a6adc8' } }
+        }
+      }
+    });
+    storeOrig('nickel', ch);
   })();
 
   (function() {
@@ -1536,15 +1577,15 @@ window.addEventListener('DOMContentLoaded', function() {
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { labels: { color: '#cdd6f4' } },
-          latestValueLabel: { unit: "USD/t" },
+          latestValueLabel: { unit: "USD/share" },
           tooltip: { callbacks: { label: function(c) {
-            return c.dataset.label + ': ' + c.parsed.y.toLocaleString() + ' USD/t';
+            return c.dataset.label + ': ' + c.parsed.y.toLocaleString() + ' USD/share';
           } } }
         },
         scales: {
           x: { ticks: { color: '#a6adc8', maxTicksLimit: 10 }, grid: { color: '#313244' } },
           y: { ticks: { color: '#a6adc8' }, grid: { color: '#313244' },
-                title: { display: true, text: "USD/t", color: '#a6adc8' } }
+                title: { display: true, text: "USD/share", color: '#a6adc8' } }
         }
       }
     });

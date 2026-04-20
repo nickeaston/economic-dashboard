@@ -63,18 +63,30 @@ def fetch_yf(ticker: str, label: str, unit: str, multiply: float = 1.0) -> dict:
     import yfinance as yf
     log(f"  yfinance  {ticker:20s} → {label}")
     try:
-        hist = yf.Ticker(ticker).history(period="10y", interval="1wk")
+        t = yf.Ticker(ticker)
+        hist = t.history(period="10y", interval="1wk")
         if hist.empty:
             log(f"    WARNING: empty history for {ticker}")
             return None
-        # Sample every 2nd weekly row to get ~2 data points per month
+        # Sample every 2nd weekly row for ~2 points per month, AND always include
+        # the very last row so the chart reflects the most recent data point.
         rows = list(hist.iterrows())
         series = []
         for i, (dt, row) in enumerate(rows):
-            if i % 2 == 0:
+            if i % 2 == 0 or i == len(rows) - 1:
                 v = round(float(row["Close"]) * multiply, 4)
                 series.append({"date": fmt_date(dt), "value": v})
-        return {"label": label, "unit": unit, "series": series}
+        # Today's live close for "current price" display alongside the chart title
+        current_price = None
+        try:
+            today = t.history(period="5d", interval="1d")
+            if not today.empty:
+                current_price = round(float(today["Close"].iloc[-1]) * multiply, 4)
+        except Exception:
+            pass
+        if current_price is None and series:
+            current_price = series[-1]["value"]
+        return {"label": label, "unit": unit, "series": series, "current": current_price}
     except Exception as e:
         log(f"    ERROR {ticker}: {e}")
         return None
@@ -544,15 +556,22 @@ def build_data(cache: dict) -> dict:
     data = {}
 
     def use(key: str, fetched, label_fallback: str = ""):
-        """Store fetched result; fall back to cache if fetch failed or empty."""
+        """Store fetched result; fall back to cache if fetch failed or empty.
+        Ensures a `current` field is set on every stored series (the most recent
+        `value` in the series) — used by the dashboard title row."""
         if fetched and fetched.get("series") and len(fetched["series"]) > 0:
+            # For non-yfinance series (IMF/ABS/WB), fetch_* returns no `current` —
+            # fall back to the last series value so every series has one.
+            if "current" not in fetched or fetched.get("current") is None:
+                last_val = fetched["series"][-1].get("value")
+                fetched["current"] = last_val
             data[key] = fetched
         elif key in cache:
             log(f"    → using cached data for {key}")
             data[key] = cache[key]
         else:
             data[key] = {"label": label_fallback or key,
-                         "unit": "", "series": []}
+                         "unit": "", "series": [], "current": None}
 
     # ── Australian Markets ──────────────────────────────────────────────────
     log("\n=== Australian Markets ===")

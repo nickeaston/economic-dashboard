@@ -55,9 +55,9 @@ SECTIONS = [
         {"id": "gold",     "title": "Gold",           "key": "gold",     "type": "line", "unit": "USD/oz"},
         {"id": "iron_ore", "title": "Iron Ore",       "key": "iron_ore", "type": "line", "unit": "USD/t"},
         {"id": "copper",   "title": "Copper",         "key": "copper",   "type": "line", "unit": "USD/t"},
-        {"id": "nickel",   "title": "Nickel",         "key": "nickel",   "type": "line", "unit": "Index 2016=100"},
-        {"id": "lithium",  "title": "Lithium",        "key": "lithium",  "type": "line", "unit": "USD/t"},
-        {"id": "cobalt",   "title": "Cobalt",         "key": "cobalt",   "type": "line", "unit": "USD/t"},
+        {"id": "lithium",  "title": "Lithium (LIT ETF)",          "key": "lithium", "type": "line", "unit": "USD/share"},
+        {"id": "nickel",   "title": "Metals & Mining (PICK ETF)", "key": "nickel",  "type": "line", "unit": "USD/share"},
+        {"id": "cobalt",   "title": "Strategic Metals (REMX ETF)","key": "cobalt",  "type": "line", "unit": "USD/share"},
     ]),
     ("global_markets", "Global Markets", [
         {"id": "dow",      "title": "Dow Jones",              "key": "dow",      "type": "line", "unit": "pts"},
@@ -580,6 +580,42 @@ def build_nav() -> str:
 # Main content
 # ─────────────────────────────────────────────────────────────────────────────
 
+def fmt_price(val, unit=""):
+    """Pretty-print a price for the title row."""
+    if val is None:
+        return "—"
+    prefix = "$" if ("USD" in unit or unit in ("USD/share", "USD/oz", "USD/bbl", "USD/t")) else ""
+    suffix = unit if unit in ("%", "pts") else ""
+    if abs(val) >= 1000:
+        s = f"{val:,.0f}"
+    elif abs(val) >= 10:
+        s = f"{val:,.2f}"
+    else:
+        s = f"{val:.3f}"
+    return f"{prefix}{s}{(' ' + suffix) if suffix else ''}"
+
+
+def compute_current_change(cfg):
+    """Return (current_str, change_pct, change_class) for the title row.
+    Returns ('', None, '') when not meaningful (e.g. multi-series or empty)."""
+    key = cfg.get("key")
+    d = data.get(key, {})
+    if cfg.get("type") in ("multiline", "dual", "grouped_bar"):
+        return "", None, ""
+    current = d.get("current")
+    series = d.get("series", []) or []
+    if current is None or not series:
+        return "", None, ""
+    unit = cfg.get("unit", "")
+    # % change vs previous data point in the series
+    prev = series[-1].get("value") if series else None
+    pct = None
+    if prev and prev != 0 and current is not None:
+        pct = (current - prev) / prev * 100
+    cls = "chg-pos" if pct is not None and pct >= 0 else "chg-neg"
+    return fmt_price(current, unit), pct, cls
+
+
 def build_content():
     sections_html = []
     all_js        = []
@@ -594,9 +630,24 @@ def build_content():
             zoom_html  = render_zoom_btns(cid)
             all_js.append(chart_js)
 
+            current_str, pct, cls = compute_current_change(cfg)
+            if current_str:
+                pct_html = f'<span class="{cls}">{pct:+.2f}%</span>' if pct is not None else ''
+                title_row = (
+                    f'<div class="chart-title-row">'
+                    f'<h3>{cfg["title"]}</h3>'
+                    f'<div class="chart-title-price">'
+                    f'<span class="current-price">{current_str}</span>'
+                    f' {pct_html}'
+                    f'</div>'
+                    f'</div>'
+                )
+            else:
+                title_row = f'<h3>{cfg["title"]}</h3>'
+
             metrics_html.append(f"""
       <div class="metric" id="metric-{cid}">
-        <h3>{cfg['title']}</h3>
+        {title_row}
         {zoom_html}
         <div class="metric-body">
           <div class="chart-container">
@@ -783,6 +834,40 @@ HTML = f"""<!DOCTYPE html>
     color: var(--text);
     margin-bottom: 10px;
   }}
+  /* Title row with current price + % change to the right of each chart title */
+  .chart-title-row {{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }}
+  .chart-title-row h3 {{ margin-bottom: 0; }}
+  .chart-title-price {{
+    font-size: 14px;
+    color: var(--muted);
+    white-space: nowrap;
+  }}
+  .current-price {{
+    font-weight: 700;
+    color: var(--text);
+    font-size: 15px;
+    margin-right: 6px;
+  }}
+  .chg-pos {{ color: #2e7d32; font-weight: 600; }}
+  .chg-neg {{ color: #c62828; font-weight: 600; }}
+  /* Refresh guidance banner at top */
+  .refresh-note {{
+    background: #eef3f8;
+    border-left: 4px solid #1961c2;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin: 0 0 18px;
+    font-size: 13px;
+    color: #334155;
+  }}
+  .refresh-note strong {{ color: #0f1923; }}
 
   /* ── Zoom buttons ── */
   .zoom-bar {{
@@ -935,6 +1020,13 @@ HTML = f"""<!DOCTYPE html>
     </div>
     <span id="regen-msg"></span>
     <a id="regen-btn" href="https://github.com/nickeaston/economic-dashboard/actions/workflows/refresh.yml" target="_blank" rel="noopener" style="text-decoration:none;">&#8635; Refresh Now</a>
+  </div>
+
+  <div class="refresh-note">
+    <strong>How this dashboard works:</strong> Auto-refreshes at 7:30 AEST on the 1st and 15th of each month.
+    For an on-demand refresh, click <strong>Refresh Now</strong> top-right &rarr; this opens GitHub Actions &rarr; press <strong>Run workflow</strong>.
+    The full data pull takes ~5 minutes; once it finishes, reload this page (Cmd+Shift+R) to see the updated "Data last updated" timestamp and fresh values.
+    Each chart shows the current price + % change vs the previous data point to the right of its title.
   </div>
 
   {content_html}
