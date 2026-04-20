@@ -362,7 +362,15 @@ def fetch_us_bonds() -> dict:
             except Exception as e:
                 log(f"    yfinance {ticker} failed: {e}")
 
-    series = sorted(by_date.values(), key=lambda x: x["date"])
+    # Sort by actual date, not by string (d/m/yy string sort gives wrong ordering)
+    def _parse_dt(dstr):
+        try:
+            d, m, y = dstr.split("/")
+            yr = int(y); yr = 2000 + yr if yr < 100 else yr
+            return datetime(yr, int(m), int(d))
+        except Exception:
+            return datetime(1900, 1, 1)
+    series = sorted(by_date.values(), key=lambda x: _parse_dt(x["date"]))
     # Latest values snapshot for the current-price title row (use y10 as the canonical)
     current = None
     if series:
