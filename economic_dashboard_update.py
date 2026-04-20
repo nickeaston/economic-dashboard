@@ -416,7 +416,10 @@ def fetch_au_bonds() -> dict:
                             pass
                     return None
 
-                entry = {"date": fmt_date(dt), "y2": _col(1), "y5": _col(3), "y10": _col(5)}
+                # RBA F2 columns: 0=Date, 1=2Y, 2=3Y, 3=5Y, 4=10Y, 5=Indexed Bond (real yield)
+                # Earlier bug: y10 was pulling col 5 (indexed bond ~2.5% real yield)
+                # instead of col 4 (nominal 10Y ~4.9%). Fixed 2026-04-20.
+                entry = {"date": fmt_date(dt), "y2": _col(1), "y5": _col(3), "y10": _col(4)}
                 if any(v is not None for v in [entry["y2"], entry["y5"], entry["y10"]]):
                     result.append(entry)
             if result:
