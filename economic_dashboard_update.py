@@ -68,22 +68,32 @@ def fetch_yf(ticker: str, label: str, unit: str, multiply: float = 1.0) -> dict:
         if hist.empty:
             log(f"    WARNING: empty history for {ticker}")
             return None
-        # Sample every 2nd weekly row for ~2 points per month, AND always include
-        # the very last row so the chart reflects the most recent data point.
         rows = list(hist.iterrows())
         series = []
         for i, (dt, row) in enumerate(rows):
             if i % 2 == 0 or i == len(rows) - 1:
                 v = round(float(row["Close"]) * multiply, 4)
                 series.append({"date": fmt_date(dt), "value": v})
-        # Today's live close for "current price" display alongside the chart title
+        # Append today's daily close as the final series point (labeled with
+        # today's date so the chart's rightmost tick reads e.g. "20/4/26" not
+        # the Monday-of-week date yfinance uses for weekly bars).
         current_price = None
+        current_date = None
         try:
             today = t.history(period="5d", interval="1d")
             if not today.empty:
-                current_price = round(float(today["Close"].iloc[-1]) * multiply, 4)
+                last_row = today.iloc[-1]
+                last_dt = today.index[-1].to_pydatetime()
+                current_price = round(float(last_row["Close"]) * multiply, 4)
+                current_date = fmt_date(last_dt)
         except Exception:
             pass
+        # Replace/append last series point with today's data if we have it
+        if current_price is not None and current_date:
+            if series and series[-1]["date"] != current_date:
+                series.append({"date": current_date, "value": current_price})
+            elif series:
+                series[-1] = {"date": current_date, "value": current_price}
         if current_price is None and series:
             current_price = series[-1]["value"]
         return {"label": label, "unit": unit, "series": series, "current": current_price}

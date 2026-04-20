@@ -76,6 +76,36 @@ SECTIONS = [
     ]),
 ]
 
+SOURCES = {
+    "asx200":       ("https://finance.yahoo.com/quote/%5EAXJO",   "Yahoo Finance · ^AXJO"),
+    "allords":      ("https://finance.yahoo.com/quote/%5EAORD",   "Yahoo Finance · ^AORD"),
+    "smallcap":     ("https://finance.yahoo.com/quote/%5EAXSO",   "Yahoo Finance · ^AXSO"),
+    "audusd":       ("https://finance.yahoo.com/quote/AUDUSD%3DX","Yahoo Finance · AUDUSD=X"),
+    "interest_rate":("https://www.rba.gov.au/statistics/tables/", "RBA · F1.1 Cash Rate Target"),
+    "unemployment": ("https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia", "ABS · Labour Force Survey"),
+    "bonds":        ("https://www.rba.gov.au/statistics/tables/", "RBA · F2 Capital Market Yields"),
+    "cpi":          ("https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia", "ABS · CPI (quarterly)"),
+    "deficit":      ("https://data.worldbank.org/indicator/GC.NLD.TOTL.GD.ZS?locations=AU", "World Bank · Net Lending % GDP (annual, ~2y lag)"),
+    "private_debt": ("https://data.worldbank.org/indicator/FS.AST.PRVT.GD.ZS?locations=AU", "World Bank · Domestic Credit to Private Sector % GDP"),
+    "gold":         ("https://finance.yahoo.com/quote/GC%3DF",    "Yahoo Finance · GC=F"),
+    "oil":          ("https://finance.yahoo.com/quote/CL%3DF",    "Yahoo Finance · CL=F (WTI)"),
+    "copper":       ("https://finance.yahoo.com/quote/HG%3DF",    "Yahoo Finance · HG=F (×2204.62 lb→t)"),
+    "iron_ore":     ("https://finance.yahoo.com/quote/TIO%3DF",   "Yahoo Finance · TIO=F (SGX Iron Ore)"),
+    "lithium":      ("https://finance.yahoo.com/quote/LIT",       "Yahoo Finance · LIT ETF (Global X Lithium & Battery Tech)"),
+    "nickel":       ("https://finance.yahoo.com/quote/PICK",      "Yahoo Finance · PICK ETF (iShares Metals & Mining)"),
+    "cobalt":       ("https://finance.yahoo.com/quote/REMX",      "Yahoo Finance · REMX ETF (VanEck Rare Earth/Strategic Metals)"),
+    "dow":          ("https://finance.yahoo.com/quote/%5EDJI",    "Yahoo Finance · ^DJI"),
+    "nasdaq":       ("https://finance.yahoo.com/quote/%5EIXIC",   "Yahoo Finance · ^IXIC"),
+    "sp500":        ("https://finance.yahoo.com/quote/%5EGSPC",   "Yahoo Finance · ^GSPC"),
+    "japan":        ("https://finance.yahoo.com/quote/%5EN225",   "Yahoo Finance · ^N225"),
+    "china":        ("https://finance.yahoo.com/quote/000001.SS", "Yahoo Finance · 000001.SS (Shanghai)"),
+    "dax":          ("https://finance.yahoo.com/quote/%5EGDAXI",  "Yahoo Finance · ^GDAXI"),
+    "cac":          ("https://finance.yahoo.com/quote/%5EFCHI",   "Yahoo Finance · ^FCHI"),
+    "ftse":         ("https://finance.yahoo.com/quote/%5EFTSE",   "Yahoo Finance · ^FTSE"),
+    "emerging":     ("https://finance.yahoo.com/quote/EEM",       "Yahoo Finance · EEM ETF (iShares MSCI Emerging Markets)"),
+    "country_debt": ("https://www.imf.org/external/datamapper/GGXWDG_NGDP@WEO", "IMF WEO (Govt Gross Debt % GDP, 2024 snapshot) · World Bank (Private Debt)"),
+}
+
 COLORS = [
     "#4FC3F7", "#81C784", "#FFB74D", "#F06292", "#CE93D8",
     "#80DEEA", "#FFCC80", "#A5D6A7", "#EF9A9A", "#90CAF9",
@@ -640,21 +670,26 @@ def build_content():
             current_str, pct, cls = compute_current_change(cfg)
             if current_str:
                 pct_html = f'<span class="{cls}">{pct:+.2f}%</span>' if pct is not None else ''
-                title_row = (
-                    f'<div class="chart-title-row">'
-                    f'<h3>{cfg["title"]}</h3>'
-                    f'<div class="chart-title-price">'
+                snapshot_row = (
+                    f'<div class="chart-snapshot">'
+                    f'<span class="current-label">Latest:</span> '
                     f'<span class="current-price">{current_str}</span>'
                     f' {pct_html}'
                     f'</div>'
-                    f'</div>'
                 )
             else:
-                title_row = f'<h3>{cfg["title"]}</h3>'
+                snapshot_row = ''
+
+            src_url, src_label = SOURCES.get(cfg["key"], ("", ""))
+            source_html = (
+                f'<div class="chart-source">Source: '
+                f'<a href="{src_url}" target="_blank" rel="noopener">{src_label}</a></div>'
+            ) if src_url else ''
 
             metrics_html.append(f"""
       <div class="metric" id="metric-{cid}">
-        {title_row}
+        <h3>{cfg['title']}</h3>
+        {snapshot_row}
         {zoom_html}
         <div class="metric-body">
           <div class="chart-container">
@@ -663,6 +698,7 @@ def build_content():
           </div>
           {table_html}
         </div>
+        {source_html}
       </div>""")
 
         sections_html.append(f"""
@@ -841,20 +877,22 @@ HTML = f"""<!DOCTYPE html>
     color: var(--text);
     margin-bottom: 10px;
   }}
-  /* Title row with current price + % change to the right of each chart title */
-  .chart-title-row {{
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 10px;
-    gap: 12px;
-    flex-wrap: wrap;
-  }}
-  .chart-title-row h3 {{ margin-bottom: 0; }}
-  .chart-title-price {{
+  /* Current price + % change on its own row below the chart title */
+  .chart-snapshot {{
     font-size: 14px;
     color: var(--muted);
-    white-space: nowrap;
+    padding: 6px 10px;
+    background: var(--surface2);
+    border-radius: 6px;
+    margin: 0 0 10px;
+    display: inline-block;
+  }}
+  .current-label {{
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin-right: 4px;
   }}
   .current-price {{
     font-weight: 700;
@@ -862,6 +900,19 @@ HTML = f"""<!DOCTYPE html>
     font-size: 15px;
     margin-right: 6px;
   }}
+  /* Source attribution footer under each chart */
+  .chart-source {{
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }}
+  .chart-source a {{
+    color: var(--accent);
+    text-decoration: none;
+  }}
+  .chart-source a:hover {{ text-decoration: underline; }}
   .chg-pos {{ color: #2e7d32; font-weight: 600; }}
   .chg-neg {{ color: #c62828; font-weight: 600; }}
   /* Refresh guidance banner at top */
@@ -1031,9 +1082,15 @@ HTML = f"""<!DOCTYPE html>
 
   <div class="refresh-note">
     <strong>How this dashboard works:</strong> Auto-refreshes at 7:30 AEST on the 1st and 15th of each month.
-    For an on-demand refresh, click <strong>Refresh Now</strong> top-right &rarr; this opens GitHub Actions &rarr; press <strong>Run workflow</strong>.
-    The full data pull takes ~5 minutes; once it finishes, reload this page (Cmd+Shift+R) to see the updated "Data last updated" timestamp and fresh values.
-    Each chart shows the current price + % change vs the previous data point to the right of its title.
+    For an on-demand refresh, click <strong>Refresh Now</strong> top-right &rarr; GitHub Actions opens &rarr; press <strong>Run workflow</strong>.
+    Data pull takes ~5 min; after it finishes, reload this page (Cmd+Shift+R) to see the new "Data last updated" timestamp.
+    Each chart shows its <strong>Latest</strong> value and % change vs the previous data point just below the title, and the data source as a link at the bottom of the card.
+  </div>
+  <div class="refresh-note" style="border-left-color:#b08c2b;background:#fff8e7;">
+    <strong>Known data caveats:</strong>
+    Budget balance (World Bank) has a ~2y publication lag — latest actual is 2022.
+    Government debt % GDP uses an IMF WEO 2024 snapshot (the live IMF DataMapper API blocks cloud IPs) — refreshed manually after each IMF WEO release (April + October).
+    Lithium / Nickel / Cobalt are tracked via ETF proxies (LIT / PICK / REMX) rather than spot metal prices, because prior IMF PCPS feeds had mixed-unit historical data.
   </div>
 
   {content_html}
