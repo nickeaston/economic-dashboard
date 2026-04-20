@@ -529,16 +529,19 @@ def fetch_country_debt() -> dict:
                 log(f"    country_debt error: {e}")
 
     # IMF WEO snapshot is authoritative — overrides World Bank since WB has
-    # coverage gaps + stale pre-2000 values for several countries.
+    # coverage gaps (JP/CN/FR empty) + stale pre-2000 values (DE stuck at 1990).
+    # Try the live IMF DataMapper first; if it 403s from GH Actions, fall back
+    # to the hardcoded WEO snapshot for ALL countries.
     imf_govt = fetch_imf_govt_debt()
     for name, val in imf_govt.items():
         govt[name] = val
 
-    # Final safety net — hardcoded IMF WEO snapshot
+    # Unconditional overlay: IMF WEO snapshot is the authoritative figure for
+    # all 7 countries. This overrides any lingering World Bank stale value.
     for name, val in IMF_WEO_GOVT_DEBT_2024.items():
-        if name not in govt:
+        if name not in imf_govt:   # only override if live IMF didn't provide
             govt[name] = val
-            log(f"    {name} govt debt → WEO 2024 snapshot ({val}%)")
+            log(f"    {name} govt debt → WEO snapshot ({val}%)")
 
     return {
         "label":   "Country Debt-to-GDP (%)",
