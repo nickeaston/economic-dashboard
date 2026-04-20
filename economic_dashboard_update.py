@@ -447,8 +447,20 @@ IMF_ISO3 = {
     "GB": "GBR", "DE": "DEU", "FR": "FRA",
 }
 
+# IMF WEO October 2025 snapshot — fallback for countries where World Bank's
+# GC.DOD.TOTL.GD.ZS returns empty (Japan / China / France). These update twice
+# a year (April and October WEO releases). Source:
+# https://www.imf.org/external/datamapper/api/v1/GGXWDG_NGDP
+# Last updated manually 2026-04-20. Refresh after next IMF WEO.
+IMF_WEO_GOVT_DEBT_2024 = {
+    "Japan":   254.6,  # 2024 actual
+    "China":    93.2,  # 2024 actual
+    "France":  112.2,  # 2024 actual
+}
+
+
 def fetch_imf_govt_debt() -> dict:
-    """Latest ACTUAL (not projected) year from IMF DataMapper GGXWDG_NGDP."""
+    """IMF DataMapper — comprehensive but sometimes 403s from cloud IPs."""
     from datetime import datetime as _dt
     iso_list = "/".join(IMF_ISO3.values())
     url = f"https://www.imf.org/external/datamapper/api/v1/GGXWDG_NGDP/{iso_list}"
@@ -461,7 +473,6 @@ def fetch_imf_govt_debt() -> dict:
         out = {}
         for iso2, name in COUNTRY_MAP.items():
             years = vals.get(IMF_ISO3[iso2], {})
-            # Pick the latest year ≤ current year (IMF publishes projections up to +5y)
             actual_years = [int(y) for y in years.keys() if int(y) <= current_year]
             if actual_years:
                 y = max(actual_years)
@@ -470,34 +481,47 @@ def fetch_imf_govt_debt() -> dict:
                     out[name] = round(float(v), 2)
         return out
     except Exception as e:
-        log(f"    IMF DataMapper failed: {e}")
+        log(f"    IMF DataMapper failed: {e} — falling back to WB + WEO snapshot")
         return {}
 
 
 def fetch_country_debt() -> dict:
-    """Govt debt from IMF DataMapper (comprehensive); private debt from World Bank."""
+    """Govt debt: World Bank for countries that report it + IMF WEO snapshot for
+    Japan/China/France (which World Bank doesn't cover). Private debt: World Bank."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    log("  Country debt (IMF govt + World Bank private, parallel)")
+    log("  Country debt (World Bank govt + private, parallel)")
+    govt    = {}
     private = {}
 
-    # Private debt in parallel per country from World Bank
-    def _fetch_private(iso, name):
+    def _fetch(iso, name):
+        g = fetch_wb_latest(iso, "GC.DOD.TOTL.GD.ZS")
         p = fetch_wb_latest(iso, "FS.AST.PRVT.GD.ZS")
-        return name, p
+        return name, g, p
 
     with ThreadPoolExecutor(max_workers=7) as ex:
-        futures = {ex.submit(_fetch_private, iso, name): name
+        futures = {ex.submit(_fetch, iso, name): name
                    for iso, name in COUNTRY_MAP.items()}
         for fut in as_completed(futures):
             try:
-                name, p = fut.result()
+                name, g, p = fut.result()
+                if g is not None:
+                    govt[name] = g
                 if p is not None:
                     private[name] = p
             except Exception as e:
-                log(f"    private_debt error: {e}")
+                log(f"    country_debt error: {e}")
 
-    # Govt debt from IMF DataMapper (single call, all countries)
-    govt = fetch_imf_govt_debt()
+    # Try IMF DataMapper to fill in gaps (Japan/China/France typically)
+    imf_govt = fetch_imf_govt_debt()
+    for name, val in imf_govt.items():
+        if name not in govt:
+            govt[name] = val
+
+    # Final safety net — hardcoded IMF WEO snapshot for countries still missing
+    for name, val in IMF_WEO_GOVT_DEBT_2024.items():
+        if name not in govt:
+            govt[name] = val
+            log(f"    {name} govt debt → WEO 2024 snapshot ({val}%)")
 
     return {
         "label":   "Country Debt-to-GDP (%)",
