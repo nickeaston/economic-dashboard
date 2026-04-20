@@ -1,0 +1,46 @@
+name: Refresh economic dashboard
+
+on:
+  schedule:
+    # 00:00 UTC on the 1st and 15th = 10:00 AEST / 11:00 AEDT (Melbourne morning)
+    - cron: '0 0 1,15 * *'
+  workflow_dispatch:
+    # "Refresh Now" button on the dashboard links here — click "Run workflow"
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: pip install --quiet yfinance requests
+
+      - name: Fetch 10y data from APIs (yfinance, IMF, ABS, RBA, World Bank)
+        run: python economic_dashboard_update.py
+
+      - name: Render HTML + email
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: |
+          python generate_dashboard.py
+          # GitHub Pages defaults to index.html — mirror the rendered HTML there
+          cp economic_dashboard.html index.html
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add economic_data.json economic_dashboard.html index.html
+          git diff --cached --quiet || git commit -m "Refresh $(date -u +%Y-%m-%d)"
+          git push
