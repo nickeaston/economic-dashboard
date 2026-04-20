@@ -607,8 +607,15 @@ def compute_current_change(cfg):
     if current is None or not series:
         return "", None, ""
     unit = cfg.get("unit", "")
-    # % change vs previous data point in the series
-    prev = series[-1].get("value") if series else None
+    # Period-over-period % change: current vs the data point BEFORE the latest
+    # (series[-1] is typically today, so we compare to series[-2] — ~1 period
+    # prior. For bi-weekly yfinance that's ~2 weeks; for monthly ABS/WB, ~1 month;
+    # for annual WB, ~1 year).
+    prev = None
+    if len(series) >= 2:
+        prev = series[-2].get("value")
+    elif len(series) == 1:
+        prev = series[-1].get("value")
     pct = None
     if prev and prev != 0 and current is not None:
         pct = (current - prev) / prev * 100
