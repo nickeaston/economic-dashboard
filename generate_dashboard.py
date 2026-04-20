@@ -41,8 +41,16 @@ SECTIONS = [
         {"id": "private_debt",  "title": "Private Debt (% GDP)",           "key": "private_debt",  "type": "line", "unit": "%"},
         {"id": "bonds",         "title": "AU Bond Yields",                 "key": "bonds",         "type": "multiline",
          "fields": [
-             {"field": "y2",  "label": "Short-term"},
+             {"field": "y2",  "label": "2-Year"},
+             {"field": "y5",  "label": "5-Year"},
              {"field": "y10", "label": "10-Year"},
+         ], "unit": "%"},
+        {"id": "us_bonds",      "title": "US Treasury Yields",             "key": "us_bonds",      "type": "multiline",
+         "fields": [
+             {"field": "y2",  "label": "2-Year"},
+             {"field": "y5",  "label": "5-Year"},
+             {"field": "y10", "label": "10-Year"},
+             {"field": "y30", "label": "30-Year"},
          ], "unit": "%"},
         {"id": "cpi",           "title": "CPI & Inflation",                "key": "cpi",           "type": "dual",
          "fields": [
@@ -83,7 +91,8 @@ SOURCES = {
     "audusd":       ("https://finance.yahoo.com/quote/AUDUSD%3DX","Yahoo Finance · AUDUSD=X"),
     "interest_rate":("https://www.rba.gov.au/statistics/tables/", "RBA · F1.1 Cash Rate Target"),
     "unemployment": ("https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia", "ABS · Labour Force Survey"),
-    "bonds":        ("https://www.rba.gov.au/statistics/tables/", "RBA · F2 Capital Market Yields"),
+    "bonds":        ("https://www.rba.gov.au/statistics/tables/", "RBA · F2 Capital Market Yields (AU 2Y / 5Y / 10Y)"),
+    "us_bonds":     ("https://fred.stlouisfed.org/series/DGS10",  "FRED (Federal Reserve) · DGS2 / DGS5 / DGS10 / DGS30 daily constant-maturity rates"),
     "cpi":          ("https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia", "ABS · CPI (quarterly)"),
     "deficit":      ("https://data.worldbank.org/indicator/GC.NLD.TOTL.GD.ZS?locations=AU", "World Bank · Net Lending % GDP (annual, ~2y lag)"),
     "private_debt": ("https://data.worldbank.org/indicator/FS.AST.PRVT.GD.ZS?locations=AU", "World Bank · Domestic Credit to Private Sector % GDP"),
@@ -249,32 +258,10 @@ def latest_stats(cfg: dict) -> dict:
 
 
 def render_overlay(cfg: dict) -> str:
-    stats = latest_stats(cfg)
-    if not stats:
-        return ""
-    val   = stats.get("val", "—")
-    unit  = stats.get("unit", "")
-    pct   = stats.get("pct")
-    dirn  = stats.get("direction", "flat")
-    multi = stats.get("multi", False)
-
-    # Change badge
-    change_html = ""
-    if pct is not None:
-        arrow = "▲" if dirn == "up" else ("▼" if dirn == "down" else "—")
-        sign  = "+" if pct > 0 else ""
-        change_html = (f'<span class="lo-change {dirn}">'
-                       f'{arrow} {sign}{pct:.1f}%</span>')
-
-    if multi:
-        val_html = f'<span class="lo-val lo-small">{val}</span>'
-    else:
-        unit_html = f' <span class="lo-unit">{unit}</span>' if unit else ""
-        val_html  = f'<span class="lo-val">{val}</span>{unit_html}'
-
-    return (f'<div class="latest-overlay">'
-            f'{val_html}{change_html}'
-            f'</div>')
+    # Disabled 2026-04-20 — the centred-over-chart value badge was redundant
+    # with the new .chart-snapshot row just under the title. Kept the function
+    # stub so build_content() doesn't need changing.
+    return ""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -682,7 +669,7 @@ def build_content():
 
             src_url, src_label = SOURCES.get(cfg["key"], ("", ""))
             source_html = (
-                f'<div class="chart-source">Source: '
+                f'<div class="chart-source"><strong>Source →</strong> '
                 f'<a href="{src_url}" target="_blank" rel="noopener">{src_label}</a></div>'
             ) if src_url else ''
 
@@ -902,15 +889,19 @@ HTML = f"""<!DOCTYPE html>
   }}
   /* Source attribution footer under each chart */
   .chart-source {{
-    font-size: 11.5px;
-    color: var(--muted);
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--text);
+    margin-top: 14px;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
   }}
+  .chart-source strong {{ color: var(--muted); margin-right: 4px; font-weight: 600; }}
   .chart-source a {{
     color: var(--accent);
     text-decoration: none;
+    font-weight: 600;
   }}
   .chart-source a:hover {{ text-decoration: underline; }}
   .chg-pos {{ color: #2e7d32; font-weight: 600; }}

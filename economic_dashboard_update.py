@@ -308,6 +308,69 @@ def fetch_wb_latest(country: str, indicator: str):
 # AU Bond Yields — RBA CSV then World Bank fallback
 # ─────────────────────────────────────────────────────────────────────────────
 
+def fetch_us_bonds() -> dict:
+    """US Treasury yields (2/5/10/30-year) from FRED CSV. Single historical series
+    per maturity, merged into one multi-field series indexed by date.
+
+    FRED CSV URL: https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS2 etc.
+    No API key required. Daily observations since 1962.
+    """
+    import yfinance as yf
+    log("  FRED US Treasury yields (DGS2/5/10/30)")
+    by_date = {}
+    fred_map = [("y2", "DGS2"), ("y5", "DGS5"), ("y10", "DGS10"), ("y30", "DGS30")]
+    fred_ok = True
+    for field, series_id in fred_map:
+        url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
+        try:
+            r = requests.get(url, timeout=30, headers=HEADERS)
+            r.raise_for_status()
+            for line in r.text.strip().split("\n")[1:]:
+                parts = line.split(",")
+                if len(parts) != 2:
+                    continue
+                dt_str, val_str = parts[0].strip(), parts[1].strip()
+                if val_str in ("", ".", "NA"):
+                    continue
+                try:
+                    dt = datetime.strptime(dt_str, "%Y-%m-%d")
+                    if dt.year < 2014:
+                        continue
+                    v = round(float(val_str), 3)
+                except Exception:
+                    continue
+                by_date.setdefault(fmt_date(dt), {"date": fmt_date(dt)})
+                by_date[fmt_date(dt)][field] = v
+        except Exception as e:
+            log(f"    FRED {series_id} failed: {e.__class__.__name__} — falling back to yfinance")
+            fred_ok = False
+            break
+
+    # If FRED failed, use yfinance fallback: ^IRX (3-mo proxy for y2) + ^FVX/^TNX/^TYX
+    if not fred_ok or not by_date:
+        by_date = {}
+        yf_map = [("y2", "^IRX"), ("y5", "^FVX"), ("y10", "^TNX"), ("y30", "^TYX")]
+        for field, ticker in yf_map:
+            try:
+                hist = yf.Ticker(ticker).history(period="10y", interval="1wk")
+                if hist.empty:
+                    continue
+                for dt, row in hist.iterrows():
+                    dkey = fmt_date(dt.to_pydatetime())
+                    by_date.setdefault(dkey, {"date": dkey})
+                    by_date[dkey][field] = round(float(row["Close"]), 3)
+            except Exception as e:
+                log(f"    yfinance {ticker} failed: {e}")
+
+    series = sorted(by_date.values(), key=lambda x: x["date"])
+    # Latest values snapshot for the current-price title row (use y10 as the canonical)
+    current = None
+    if series:
+        last = series[-1]
+        current = last.get("y10") or last.get("y5") or last.get("y2")
+    return {"label": "US Treasury Yields", "unit": "%", "series": series, "current": current}
+
+
 def fetch_au_bonds() -> dict:
     """Try RBA F2 table CSV; fall back to World Bank long-term rate."""
     log("  RBA bonds (F2 table)")
@@ -611,6 +674,11 @@ def build_data(cache: dict) -> dict:
     # Bond yields (RBA CSV first, then OECD-style fallback)
     bonds = fetch_au_bonds()
     use("bonds", bonds)
+
+    # US Treasury yields (FRED DGS2/5/10/30, yfinance fallback)
+    log("\n=== US Economy ===")
+    us_bonds = fetch_us_bonds()
+    use("us_bonds", us_bonds)
 
     # CPI & Inflation — ABS quarterly
     # Key: All groups index, Australia, quarterly
