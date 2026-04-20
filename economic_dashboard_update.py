@@ -439,31 +439,65 @@ COUNTRY_MAP = {
     "DE": "Germany",
     "FR": "France",
 }
+# IMF DataMapper uses ISO3 country codes + GGXWDG_NGDP for Govt Gross Debt % GDP
+# (covers all G7/G20 including Japan/China/France where World Bank's
+# GC.DOD.TOTL.GD.ZS is empty).
+IMF_ISO3 = {
+    "AU": "AUS", "US": "USA", "JP": "JPN", "CN": "CHN",
+    "GB": "GBR", "DE": "DEU", "FR": "FRA",
+}
+
+def fetch_imf_govt_debt() -> dict:
+    """Latest ACTUAL (not projected) year from IMF DataMapper GGXWDG_NGDP."""
+    from datetime import datetime as _dt
+    iso_list = "/".join(IMF_ISO3.values())
+    url = f"https://www.imf.org/external/datamapper/api/v1/GGXWDG_NGDP/{iso_list}"
+    log("  IMF DataMapper govt debt (GGXWDG_NGDP)")
+    try:
+        r = requests.get(url, timeout=30, headers=HEADERS)
+        r.raise_for_status()
+        vals = r.json().get("values", {}).get("GGXWDG_NGDP", {})
+        current_year = _dt.now().year
+        out = {}
+        for iso2, name in COUNTRY_MAP.items():
+            years = vals.get(IMF_ISO3[iso2], {})
+            # Pick the latest year ≤ current year (IMF publishes projections up to +5y)
+            actual_years = [int(y) for y in years.keys() if int(y) <= current_year]
+            if actual_years:
+                y = max(actual_years)
+                v = years[str(y)]
+                if v is not None:
+                    out[name] = round(float(v), 2)
+        return out
+    except Exception as e:
+        log(f"    IMF DataMapper failed: {e}")
+        return {}
+
 
 def fetch_country_debt() -> dict:
-    """Fetch govt + private debt for all countries in parallel."""
+    """Govt debt from IMF DataMapper (comprehensive); private debt from World Bank."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    log("  World Bank country debt (parallel fetch)")
-    govt    = {}
+    log("  Country debt (IMF govt + World Bank private, parallel)")
     private = {}
 
-    def _fetch(iso, name):
-        g = fetch_wb_latest(iso, "GC.DOD.TOTL.GD.ZS")
+    # Private debt in parallel per country from World Bank
+    def _fetch_private(iso, name):
         p = fetch_wb_latest(iso, "FS.AST.PRVT.GD.ZS")
-        return name, g, p
+        return name, p
 
     with ThreadPoolExecutor(max_workers=7) as ex:
-        futures = {ex.submit(_fetch, iso, name): name
+        futures = {ex.submit(_fetch_private, iso, name): name
                    for iso, name in COUNTRY_MAP.items()}
         for fut in as_completed(futures):
             try:
-                name, g, p = fut.result()
-                if g is not None:
-                    govt[name] = g
+                name, p = fut.result()
                 if p is not None:
                     private[name] = p
             except Exception as e:
-                log(f"    country_debt error: {e}")
+                log(f"    private_debt error: {e}")
+
+    # Govt debt from IMF DataMapper (single call, all countries)
+    govt = fetch_imf_govt_debt()
 
     return {
         "label":   "Country Debt-to-GDP (%)",
@@ -522,10 +556,11 @@ def build_data(cache: dict) -> dict:
     cpi = fetch_au_cpi()
     use("cpi", cpi)
 
-    # Budget balance — World Bank (cash surplus/deficit % GDP, annual)
+    # Budget balance — World Bank net lending/borrowing % GDP (standard metric, annual)
+    # Switched from GC.BAL.CASH.GD.ZS (returns empty since ~2019) on 2026-04-20.
     use("deficit",
-        fetch_wb("AU", "GC.BAL.CASH.GD.ZS",
-                 "Budget Deficit/Surplus (% GDP)", "%"))
+        fetch_wb("AU", "GC.NLD.TOTL.GD.ZS",
+                 "Budget Balance (Net lending, % GDP)", "%"))
 
     # Private debt — World Bank (domestic credit to private sector % GDP)
     use("private_debt",
