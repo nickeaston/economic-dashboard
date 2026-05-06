@@ -82,6 +82,46 @@ SECTIONS = [
         {"id": "country_debt", "title": "Government & Private Debt (% of GDP)",
          "key": "country_debt", "type": "grouped_bar", "unit": "%"},
     ]),
+    # ─── New sections (Phase 1 wedge live · Phase 2/3 source-only) ───────────
+    ("macro_economics", "Macro Economics", [
+        {"id": "truflation", "title": "Truflation US Inflation",      "key": "truflation", "type": "source_only", "unit": "",
+         "pending_reason": "Truflation API key needed"},
+        {"id": "t10y2y",     "title": "10Y-2Y Treasury Spread",       "key": "t10y2y",     "type": "source_only", "unit": "bp",
+         "pending_reason": "FRED API key needed"},
+        {"id": "gscpi",      "title": "NY Fed GSCPI",                 "key": "gscpi",      "type": "source_only", "unit": "z-score",
+         "pending_reason": "NY Fed serves legacy .xls — needs xlrd parser (v2)"},
+        {"id": "tbill_3m",   "title": "3-Month T-Bill Yield",         "key": "tbill_3m",   "type": "source_only", "unit": "%",
+         "pending_reason": "FRED API key needed"},
+        {"id": "ism_pmi",    "title": "ISM Manufacturing PMI",        "key": "ism_pmi",    "type": "source_only", "unit": "",
+         "pending_reason": "Manual update on ISM release day"},
+        {"id": "unrate",     "title": "US Unemployment Rate",         "key": "unrate",     "type": "source_only", "unit": "%",
+         "pending_reason": "FRED API key needed"},
+        {"id": "move_index", "title": "MOVE Index (Bond Vol)",        "key": "move_index", "type": "line", "unit": "pts"},
+        {"id": "dxy",        "title": "DXY (US Dollar Index)",        "key": "dxy",        "type": "line", "unit": "pts"},
+    ]),
+    ("global_liquidity", "Global Liquidity", [
+        {"id": "cb_assets", "title": "Global Central Bank Total Assets", "key": "cb_assets", "type": "source_only", "unit": "USD T",
+         "pending_reason": "MacroMicro paywall — Phase 2 = composite from FRED+ECB+BOJ+PBOC"},
+    ]),
+    ("crypto_mkt_cap", "Crypto Market Cap & AUM", [
+        {"id": "tao_subnet",   "title": "TAO Bittensor — Subnet Universe", "key": "tao_subnet",   "type": "source_only", "unit": "USD bn",
+         "pending_reason": "tao.app auth token needed"},
+        {"id": "stables_mcap", "title": "Stablecoins Total Mkt Cap",       "key": "stables_mcap", "type": "line", "unit": "USD bn"},
+        {"id": "nft_mcap",     "title": "NFT Total Mkt Cap",               "key": "nft_mcap",     "type": "source_only", "unit": "USD bn",
+         "pending_reason": "DeFiLlama no public aggregate endpoint — needs scraper or per-collection rollup"},
+        {"id": "btc_etf_aum",  "title": "BTC ETF — Total AUM",             "key": "btc_etf_aum",  "type": "source_only", "unit": "USD bn",
+         "pending_reason": "Phase 2 Farside HTML scraper"},
+        {"id": "eth_etf_aum",  "title": "ETH ETF — Total AUM",             "key": "eth_etf_aum",  "type": "source_only", "unit": "USD bn",
+         "pending_reason": "Phase 2 Farside HTML scraper"},
+        {"id": "strategic_eth","title": "Strategic ETH Reserve — AUM",     "key": "strategic_eth","type": "source_only", "unit": "ETH",
+         "pending_reason": "Phase 2 Etherscan/Dune query"},
+        {"id": "eth_burn",     "title": "Ethereum Burn (Ultrasound)",      "key": "eth_burn",     "type": "stat_tile", "unit": "ETH"},
+    ]),
+    ("crypto_sentiment", "Crypto Sentiment & Order Flow", [
+        {"id": "btc_liq_map", "title": "BTC Liquidity Map",                "key": "btc_liq_map", "type": "source_only", "unit": "",
+         "pending_reason": "DeCenTrader paywall — alt: Coinglass free heatmap"},
+        {"id": "crypto_fng",  "title": "Crypto Fear & Greed Index",        "key": "crypto_fng",  "type": "line", "unit": "0-100"},
+    ]),
 ]
 
 SOURCES = {
@@ -113,6 +153,25 @@ SOURCES = {
     "ftse":         ("https://finance.yahoo.com/quote/%5EFTSE",   "Yahoo Finance · ^FTSE"),
     "emerging":     ("https://finance.yahoo.com/quote/EEM",       "Yahoo Finance · EEM ETF (iShares MSCI Emerging Markets)"),
     "country_debt": ("https://www.imf.org/external/datamapper/GGXWDG_NGDP@WEO", "IMF WEO (Govt Gross Debt % GDP, 2024 snapshot) · World Bank (Private Debt)"),
+    # ── New sources ──────────────────────────────────────────────────────────
+    "truflation":     ("https://truflation.com/",                                                         "Truflation · US Inflation Rate"),
+    "t10y2y":         ("https://fred.stlouisfed.org/series/T10Y2Y",                                       "FRED · T10Y2Y (10Y minus 2Y Treasury Spread)"),
+    "gscpi":          ("https://www.newyorkfed.org/research/policy/gscpi",                                "NY Fed · Global Supply Chain Pressure Index"),
+    "tbill_3m":       ("https://fred.stlouisfed.org/series/DGS3MO",                                       "FRED · DGS3MO (3-Month Treasury · YCharts substitute)"),
+    "ism_pmi":        ("https://www.investing.com/economic-calendar/ism-manufacturing-pmi-173",           "Investing.com · ISM Manufacturing PMI"),
+    "unrate":         ("https://fred.stlouisfed.org/series/UNRATE",                                       "FRED · UNRATE (US Unemployment Rate)"),
+    "move_index":     ("https://au.finance.yahoo.com/quote/%5EMOVE",                                      "Yahoo Finance · ^MOVE (ICE BofA Bond Volatility)"),
+    "dxy":            ("https://www.tradingview.com/symbols/TVC-DXY/",                                    "TradingView · DXY (yfinance DX-Y.NYB)"),
+    "cb_assets":      ("https://www.macromicro.me/charts/8717/global-major-central-bank-total-assets",    "MacroMicro · Global Central Bank Total Assets"),
+    "tao_subnet":     ("https://tao.app/explorer",                                                        "tao.app · Bittensor Subnet Explorer"),
+    "stables_mcap":   ("https://defillama.com/stablecoins",                                               "DeFiLlama · Stablecoins Aggregate"),
+    "nft_mcap":       ("https://defillama.com/nfts",                                                      "DeFiLlama · NFTs Aggregate Mkt Cap"),
+    "btc_etf_aum":    ("https://farside.co.uk/btc/",                                                      "Farside Investors · BTC ETF Flows + AUM"),
+    "eth_etf_aum":    ("https://farside.co.uk/eth/",                                                      "Farside Investors · ETH ETF Flows + AUM"),
+    "strategic_eth":  ("https://www.strategicethreserve.xyz/",                                            "Strategic ETH Reserve · Total ETH AUM"),
+    "eth_burn":       ("https://ultrasound.money/",                                                       "Ultrasound Money · ETH Burn / Issuance / Supply"),
+    "btc_liq_map":    ("https://decentrader.com/liquidity-maps/?coin=btc",                                "DeCenTrader · BTC Liquidity Map"),
+    "crypto_fng":     ("https://alternative.me/crypto/fear-and-greed-index/",                             "Alternative.me · Crypto Fear & Greed Index"),
 }
 
 COLORS = [
@@ -647,7 +706,57 @@ def build_content():
     for sec_id, sec_title, charts in SECTIONS:
         metrics_html = []
         for cfg in charts:
-            cid        = cfg["id"]
+            cid   = cfg["id"]
+            ctype = cfg["type"]
+
+            src_url, src_label = SOURCES.get(cfg["key"], ("", ""))
+            source_html = (
+                f'<div class="chart-source"><strong>Source →</strong> '
+                f'<a href="{src_url}" target="_blank" rel="noopener">{src_label}</a></div>'
+            ) if src_url else ''
+
+            # Source-only tile: no chart, just title + reason + big source link
+            if ctype == "source_only":
+                reason = cfg.get("pending_reason", "Pipeline pending — click source for live data")
+                metrics_html.append(f"""
+      <div class="metric source-only" id="metric-{cid}">
+        <h3>{cfg['title']}</h3>
+        <div class="source-only-body">
+          <div class="pending-badge">⏳ {reason}</div>
+          <a href="{src_url}" target="_blank" rel="noopener" class="big-source-link">Open live source ↗</a>
+        </div>
+        {source_html}
+      </div>""")
+                continue
+
+            # Stat-tile: 3-up snapshot cards (no chart, no series — for things
+            # like Ultrasound burn where the API gives current values only).
+            if ctype == "stat_tile":
+                d = data.get(cfg["key"], {})
+                stats = d.get("stats", [])
+                tiles = ""
+                for s in stats:
+                    eth = s.get("eth")
+                    usd = s.get("usd", 0) or 0
+                    eth_str = f"{eth:,.2f}" if eth is not None else "—"
+                    usd_str = f"${usd/1e6:,.2f}M" if usd >= 1e6 else f"${usd:,.0f}"
+                    tiles += (
+                        f'<div class="stat-tile-card">'
+                        f'<div class="stat-label">{s.get("label","")}</div>'
+                        f'<div class="stat-value">{eth_str} ETH</div>'
+                        f'<div class="stat-sub">{usd_str}</div>'
+                        f'</div>'
+                    )
+                if not tiles:
+                    tiles = '<div class="stat-tile-card"><div class="stat-label">No snapshot yet — first cron will populate.</div></div>'
+                metrics_html.append(f"""
+      <div class="metric" id="metric-{cid}">
+        <h3>{cfg['title']}</h3>
+        <div class="stat-tile-row">{tiles}</div>
+        {source_html}
+      </div>""")
+                continue
+
             table_html = build_table_html(cfg)
             chart_js   = build_chart_js(cfg)
             overlay    = render_overlay(cfg)
@@ -666,12 +775,6 @@ def build_content():
                 )
             else:
                 snapshot_row = ''
-
-            src_url, src_label = SOURCES.get(cfg["key"], ("", ""))
-            source_html = (
-                f'<div class="chart-source"><strong>Source →</strong> '
-                f'<a href="{src_url}" target="_blank" rel="noopener">{src_label}</a></div>'
-            ) if src_url else ''
 
             metrics_html.append(f"""
       <div class="metric" id="metric-{cid}">
@@ -906,6 +1009,72 @@ HTML = f"""<!DOCTYPE html>
   .chart-source a:hover {{ text-decoration: underline; }}
   .chg-pos {{ color: #2e7d32; font-weight: 600; }}
   .chg-neg {{ color: #c62828; font-weight: 600; }}
+
+  /* ── Source-only tile (live data not yet wired) ── */
+  .metric.source-only {{ border-left: 3px solid #d4a373; }}
+  .source-only-body {{
+    padding: 18px 16px 22px;
+    text-align: center;
+  }}
+  .pending-badge {{
+    display: inline-block;
+    background: rgba(212, 163, 115, 0.10);
+    color: #d4a373;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    border: 1px solid rgba(212, 163, 115, 0.35);
+  }}
+  .big-source-link {{
+    display: block;
+    background: var(--surface2);
+    color: var(--accent);
+    padding: 11px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    margin: 0 auto;
+    max-width: 260px;
+    transition: background 0.15s, color 0.15s;
+    border: 1px solid var(--border);
+  }}
+  .big-source-link:hover {{ background: var(--accent); color: var(--surface); }}
+
+  /* ── Stat-tile (3-up snapshot card row) ── */
+  .stat-tile-row {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 8px 0 6px;
+  }}
+  .stat-tile-card {{
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 14px;
+    text-align: center;
+  }}
+  .stat-tile-card .stat-label {{
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }}
+  .stat-tile-card .stat-value {{
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }}
+  .stat-tile-card .stat-sub {{
+    font-size: 11.5px;
+    color: var(--muted);
+  }}
   /* Refresh guidance banner at top */
   .refresh-note {{
     background: #eef3f8;

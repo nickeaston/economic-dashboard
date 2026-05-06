@@ -640,6 +640,162 @@ def fetch_country_debt() -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Crypto Fear & Greed (alternative.me) — free public API, no key
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_fear_greed() -> dict:
+    log("  Fear & Greed (alternative.me)")
+    try:
+        url = "https://api.alternative.me/fng/?limit=0"
+        r = requests.get(url, timeout=25, headers=HEADERS)
+        r.raise_for_status()
+        rows = r.json().get("data", [])
+        rows = list(reversed(rows))  # API returns newest first
+        # Sample weekly to keep the JSON payload manageable
+        series = []
+        for i, row in enumerate(rows):
+            if i % 7 != 0 and i != len(rows) - 1:
+                continue
+            try:
+                ts = int(row["timestamp"])
+                dt = datetime.utcfromtimestamp(ts)
+                series.append({"date": fmt_date(dt), "value": int(row["value"])})
+            except Exception:
+                continue
+        if not series:
+            return None
+        return {"label": "Crypto Fear & Greed Index", "unit": "0-100", "series": series}
+    except Exception as e:
+        log(f"    Fear & Greed failed: {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DeFiLlama Stablecoins aggregate market cap — free public API
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_defillama_stables() -> dict:
+    log("  DeFiLlama Stablecoins aggregate")
+    try:
+        url = "https://stablecoins.llama.fi/stablecoincharts/all"
+        r = requests.get(url, timeout=30, headers=HEADERS)
+        r.raise_for_status()
+        rows = r.json()
+        series = []
+        for i, row in enumerate(rows):
+            if i % 7 != 0 and i != len(rows) - 1:
+                continue
+            try:
+                ts = int(row["date"])
+                dt = datetime.utcfromtimestamp(ts)
+                mcap = row.get("totalCirculatingUSD", {}).get("peggedUSD")
+                if mcap is None:
+                    continue
+                # Render in $ billions for readability
+                series.append({"date": fmt_date(dt), "value": round(float(mcap) / 1e9, 2)})
+            except Exception:
+                continue
+        if not series:
+            return None
+        return {"label": "Stablecoins Total Mkt Cap", "unit": "USD bn", "series": series}
+    except Exception as e:
+        log(f"    DeFiLlama Stables failed: {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ultrasound Money — ETH burn snapshot (free public API)
+# Returns a stat_tile structure (no chart series — point-in-time only).
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_ultrasound_burn() -> dict:
+    log("  Ultrasound Money (ETH burn)")
+    try:
+        url = "https://ultrasound.money/api/v2/fees/burn-sums"
+        r = requests.get(url, timeout=20, headers=HEADERS)
+        r.raise_for_status()
+        d = r.json()
+
+        def _stat(k, label):
+            sub = d.get(k, {}).get("sum", {})
+            return {
+                "label": label,
+                "eth":   round(float(sub.get("eth", 0)), 2),
+                "usd":   round(float(sub.get("usd", 0)), 0),
+            }
+
+        stats = [_stat("d1", "Past 24 hr"),
+                 _stat("d7", "Past 7 days"),
+                 _stat("d30", "Past 30 days")]
+        return {
+            "label": "Ethereum Burn (Ultrasound)",
+            "unit":  "ETH",
+            "stats": stats,
+            "series": [],
+            "current": stats[2]["eth"] if stats else None,
+        }
+    except Exception as e:
+        log(f"    Ultrasound burn failed: {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NY Fed Global Supply Chain Pressure Index (GSCPI) — XLSX download
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_gscpi() -> dict:
+    log("  NY Fed GSCPI (xlsx)")
+    try:
+        ensure_packages("openpyxl")
+        from openpyxl import load_workbook
+        url = "https://www.newyorkfed.org/medialibrary/research/interactives/gscpi/downloads/gscpi_data.xlsx"
+        r = requests.get(url, timeout=30, headers=HEADERS)
+        r.raise_for_status()
+        wb = load_workbook(io.BytesIO(r.content), read_only=True, data_only=True)
+        # GSCPI publishes in a sheet that usually has one Date column + one GSCPI column.
+        # Probe sheets to find the one with date + numeric values.
+        series = []
+        for ws in wb.worksheets:
+            tmp = []
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if not row or row[0] is None:
+                    continue
+                cell0 = row[0]
+                dt = None
+                if isinstance(cell0, datetime):
+                    dt = cell0
+                else:
+                    for fmt in ("%Y-%m-%d", "%Y-%m", "%b-%y", "%b-%Y", "%m/%d/%Y"):
+                        try:
+                            dt = datetime.strptime(str(cell0).strip(), fmt)
+                            break
+                        except Exception:
+                            pass
+                if dt is None or dt.year < 2014:
+                    continue
+                # Find first numeric column (skip header rows)
+                v = None
+                for c in row[1:]:
+                    try:
+                        if c is None or isinstance(c, str):
+                            continue
+                        v = float(c); break
+                    except Exception:
+                        continue
+                if v is None:
+                    continue
+                tmp.append({"date": fmt_date(dt), "value": round(v, 3)})
+            if len(tmp) > len(series):
+                series = tmp
+        if not series:
+            return None
+        return {"label": "NY Fed GSCPI", "unit": "z-score", "series": series}
+    except Exception as e:
+        log(f"    GSCPI failed: {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -752,10 +908,32 @@ def build_data(cache: dict) -> dict:
         data["country_debt"] = {"label": "Country Debt-to-GDP (%)",
                                  "govt": {}, "private": {}}
 
+    # ── Macro Economics (new — Phase 1 wedge: GSCPI + MOVE + DXY live;
+    #    FRED + Truflation + ISM + DXY-embed are source-only until keys land) ──
+    log("\n=== Macro Economics ===")
+    use("gscpi",      fetch_gscpi(),                                          "NY Fed GSCPI")
+    use("move_index", fetch_yf("^MOVE",     "MOVE Index (Bond Vol)", "pts"),  "MOVE Index")
+    use("dxy",        fetch_yf("DX-Y.NYB",  "DXY (US Dollar Index)", "pts"),  "DXY")
+
+    # ── Crypto Mkt Cap (new — Phase 1 wedge: Stables + ETH burn live;
+    #    TAO/NFTs/Farside/Strategic ETH are source-only until keys/scrapers) ──
+    log("\n=== Crypto Mkt Cap ===")
+    use("stables_mcap", fetch_defillama_stables(), "Stablecoins Aggregate")
+    eth_burn = fetch_ultrasound_burn()
+    if eth_burn:
+        data["eth_burn"] = eth_burn
+    elif "eth_burn" in cache:
+        data["eth_burn"] = cache["eth_burn"]
+
+    # ── Crypto Sentiment (new — Phase 1 wedge: F&G live;
+    #    DeCenTrader liq map is source-only paywall) ──────────────────────────
+    log("\n=== Crypto Sentiment ===")
+    use("crypto_fng", fetch_fear_greed(), "Crypto Fear & Greed")
+
     # ── Meta ─────────────────────────────────────────────────────────────────
     data["_meta"] = {
         "updated": datetime.now().strftime("%Y-%m-%d %H:%M AEST"),
-        "source":  "APIs: yfinance · OECD · IMF PCPS · World Bank",
+        "source":  "APIs: yfinance · OECD · IMF PCPS · World Bank · NY Fed · DeFiLlama · alternative.me · Ultrasound Money",
         "series":  [k for k in data if not k.startswith("_")],
     }
     return data
