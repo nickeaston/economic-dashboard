@@ -94,12 +94,10 @@ SECTIONS = [
         {"id": "dxy",        "title": "DXY (US Dollar Index)",        "key": "dxy",        "type": "line", "unit": "pts"},
     ]),
     ("global_liquidity", "Global Liquidity", [
-        {"id": "cb_assets", "title": "Global Central Bank Total Assets", "key": "cb_assets", "type": "source_only", "unit": "USD T",
-         "pending_reason": "MacroMicro paywall — Phase 2 = composite from FRED+ECB+BOJ+PBOC"},
+        {"id": "cb_assets", "title": "Global Central Bank Total Assets (BIS composite)", "key": "cb_assets", "type": "line", "unit": "USD T"},
     ]),
     ("crypto_mkt_cap", "Crypto Market Cap & AUM", [
-        {"id": "tao_subnet",   "title": "TAO Bittensor — Subnet Aggregate Mkt Cap", "key": "tao_subnet", "type": "source_only", "unit": "USD bn",
-         "pending_reason": "Subnet aggregate (sum of all 64+ subnet alpha tokens) requires the keyed taostats.io API. Free tier available at dash.taostats.io — register + drop token in keychain to unlock"},
+        {"id": "tao_subnet",   "title": "TAO Bittensor — Subnet Aggregate Mkt Cap", "key": "tao_subnet", "type": "line", "unit": "USD bn"},
         {"id": "stables_mcap", "title": "Stablecoins Total Mkt Cap",       "key": "stables_mcap", "type": "line", "unit": "USD bn"},
         {"id": "nft_mcap",     "title": "NFT Aggregate Mkt Cap (DeFiLlama)", "key": "nft_mcap",   "type": "line", "unit": "USD bn"},
         {"id": "btc_etf_aum",  "title": "BTC ETF — Cumulative Net Flows",  "key": "btc_etf_aum",  "type": "line", "unit": "USD bn"},

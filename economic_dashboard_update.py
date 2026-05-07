@@ -1078,12 +1078,124 @@ def fetch_strategic_eth_reserve() -> dict:
 # tao.app subnet (taostats.io scrape — TAO total mkt cap from public stats site)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# NOTE 2026-05-07: Removed fetch_tao_subnet() that pulled CoinGecko TAO TOKEN
-# market cap. Nick's actual ask was the SUBNET aggregate market cap (sum of
-# all subnet alpha tokens — different number, much larger). taostats.io
-# subnets data is JS-rendered + their api.taostats.io subnet endpoint requires
-# auth (free token at dash.taostats.io). Tile rolled back to source_only
-# pending Nick registering for the free taostats API token.
+# ─────────────────────────────────────────────────────────────────────────────
+# TAO Subnet Aggregate Market Cap — sum of all subnet alpha tokens
+# Path: CoinGecko's "Bittensor Subnets" category aggregates all dTAO alpha
+# tokens. Free public API. Replaces the failed taostats.io scrape (anti-bot).
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_tao_subnets_aggregate() -> dict:
+    log("  TAO Subnet Aggregate Market Cap (CoinGecko bittensor-subnets category)")
+    try:
+        cat_url = "https://api.coingecko.com/api/v3/coins/categories"
+        r1 = requests.get(cat_url, timeout=20, headers=HEADERS)
+        r1.raise_for_status()
+        cats = r1.json()
+        agg = next((c for c in cats if (c.get('id') or '') == 'bittensor-subnets'), None)
+        if not agg:
+            log("    bittensor-subnets category not in CoinGecko response")
+            return None
+        mcap = float(agg.get('market_cap') or 0)
+        vol_24h = float(agg.get('volume_24h') or 0)
+        if not mcap:
+            return None
+        mcap_bn = round(mcap / 1e9, 3)
+        vol_bn = round(vol_24h / 1e9, 3)
+        # Count subnets via the markets endpoint
+        try:
+            markets_url = ("https://api.coingecko.com/api/v3/coins/markets"
+                           "?vs_currency=usd&category=bittensor-subnets&per_page=100")
+            r2 = requests.get(markets_url, timeout=20, headers=HEADERS)
+            r2.raise_for_status()
+            subnet_count = len(r2.json())
+        except Exception:
+            subnet_count = None
+        today = datetime.now()
+        series = [{"date": fmt_date(today), "value": mcap_bn}]
+        return {
+            "label": "TAO Subnet Aggregate Mkt Cap (Bittensor)",
+            "unit": "USD bn",
+            "series": series,
+            "current": mcap_bn,
+            "_note": (
+                f"Daily snapshot from CoinGecko 'bittensor-subnets' category — sum of "
+                f"all subnet alpha tokens. {subnet_count or '?'} subnets tracked. "
+                f"24h volume: ${vol_bn}B. Replaces taostats.io/subnets (anti-bot blocked)."
+            ),
+        }
+    except Exception as e:
+        log(f"    TAO Subnets failed: {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Global Central Bank Total Assets — BIS Data Portal composite
+# Replaces MacroMicro (Cloudflare-blocked + paywalled). BIS publishes CB
+# balance sheets across 50+ economies free, with FULL HISTORY back to 2014.
+# Filter for major CBs (Fed, ECB, BOJ, BOE, SNB), sum to get aggregate
+# global liquidity proxy in USD trillions.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_bis_cb_total_assets() -> dict:
+    log("  BIS Global CB Total Assets composite (monthly historical from 2014)")
+    try:
+        url = ("https://stats.bis.org/api/v1/data/BIS,WS_CBTA,1.0/"
+               "all/all?format=csv&detail=full&startPeriod=2014")
+        r = requests.get(url, timeout=60, headers=HEADERS)
+        r.raise_for_status()
+        import csv as _csv
+        from collections import defaultdict
+        reader = _csv.DictReader(io.StringIO(r.text))
+        MAJOR_CBS = {'US', 'XM', 'JP', 'GB', 'CH'}
+        per_period = defaultdict(lambda: defaultdict(float))
+        for row in reader:
+            if row['REF_AREA'] not in MAJOR_CBS:
+                continue
+            if row['FREQ'] != 'M':
+                continue
+            if row.get('COMP_METHOD') != 'B' or row.get('TRANSFORMATION') != 'B':
+                continue
+            ref = row['REF_AREA']
+            unit = row.get('UNIT_MEASURE')
+            curr = row.get('CURRENCY')
+            is_usd = (unit == 'USD' and curr == '_Z') or (ref == 'US' and unit == 'XDC' and curr == 'USD')
+            if not is_usd:
+                continue
+            period = row['TIME_PERIOD']
+            try:
+                val = float(row['OBS_VALUE'])
+            except (ValueError, TypeError):
+                continue
+            per_period[period][ref] = val
+        if not per_period:
+            return None
+        series = []
+        for period, by_cb in sorted(per_period.items()):
+            if len(by_cb) < 4:
+                continue
+            total = sum(by_cb.values())
+            try:
+                dt = datetime.strptime(period, '%Y-%m')
+            except ValueError:
+                continue
+            # BIS values are in $ billions; convert to trillions
+            series.append({"date": fmt_date(dt), "value": round(total / 1000, 2)})
+        if not series:
+            return None
+        return {
+            "label": "Global CB Total Assets (Fed+ECB+BOJ+BOE+SNB)",
+            "unit": "USD T",
+            "series": series,
+            "current": series[-1]['value'],
+            "_note": (
+                f"Composite from BIS WS_CBTA (free public, BIS-spliced, break-adjusted). "
+                f"5 major CBs summed in USD trillions, monthly. {len(series)} historical "
+                f"points back to 2014. Replaces MacroMicro paywalled chart."
+            ),
+        }
+    except Exception as e:
+        log(f"    BIS CB Total Assets failed: {e}")
+        return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1288,7 +1400,8 @@ def build_data(cache: dict) -> dict:
     use("strategic_eth", fetch_strategic_eth_reserve(),                                 "Strategic ETH Reserve")
     use("btc_etf_aum",   fetch_farside_etf("btc", "BTC ETF — Cumulative Net Flows"),    "BTC ETF Flows")
     use("eth_etf_aum",   fetch_farside_etf("eth", "ETH ETF — Cumulative Net Flows"),    "ETH ETF Flows")
-    # tao_subnet rolled back to source_only — needs taostats API token (Nick to register)
+    use("tao_subnet",    fetch_tao_subnets_aggregate(),  "TAO Subnet Aggregate Mkt Cap")
+    use("cb_assets",     fetch_bis_cb_total_assets(),    "Global CB Total Assets (BIS)")
 
     # ── Crypto Sentiment (new — Phase 1 wedge: F&G live;
     #    DeCenTrader liq map is source-only paywall) ──────────────────────────
