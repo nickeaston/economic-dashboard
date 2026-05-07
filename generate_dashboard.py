@@ -104,8 +104,7 @@ SECTIONS = [
         {"id": "nft_mcap",     "title": "NFT Aggregate Mkt Cap (DeFiLlama)", "key": "nft_mcap",   "type": "line", "unit": "USD bn"},
         {"id": "btc_etf_aum",  "title": "BTC ETF — Cumulative Net Flows",  "key": "btc_etf_aum",  "type": "line", "unit": "USD bn"},
         {"id": "eth_etf_aum",  "title": "ETH ETF — Cumulative Net Flows",  "key": "eth_etf_aum",  "type": "line", "unit": "USD bn"},
-        {"id": "strategic_eth","title": "Strategic ETH Reserve — Total ETH","key": "strategic_eth","type": "source_only", "unit": "ETH",
-         "pending_reason": "Site is Next.js SPA with JS-rendered data — needs Playwright headless to extract"},
+        {"id": "strategic_eth","title": "Strategic ETH Reserve — Total ETH","key": "strategic_eth","type": "line", "unit": "ETH"},
         {"id": "eth_burn",     "title": "Ethereum Burn (Ultrasound)",      "key": "eth_burn",     "type": "stat_tile", "unit": "ETH"},
     ]),
     ("crypto_sentiment", "Crypto Sentiment & Order Flow", [

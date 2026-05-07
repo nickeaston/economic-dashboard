@@ -885,31 +885,44 @@ def fetch_gscpi() -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def fetch_truflation() -> dict:
-    log("  Truflation US Inflation (homepage scrape)")
+    """Truflation US Inflation Rate — scraped from the marketplace page via
+    Playwright (the homepage has CSS gradients with %-values that pollute a
+    naive regex scrape). Marketplace page renders the live rate in body text.
+    Earlier homepage scrape was returning 5.99% (CSS gradient value, not data);
+    this corrected fetcher returns the actual headline YoY rate."""
+    log("  Truflation US Inflation (Playwright on marketplace page)")
     try:
-        url = "https://truflation.com"
-        r = requests.get(url, timeout=20, headers=HEADERS)
-        r.raise_for_status()
-        # Their homepage shows the current inflation rate as e.g. "5.99%"
-        # in a prominent number. Multiple matches expected; pick the first sensible one.
+        ensure_packages("playwright")
+        from playwright.sync_api import sync_playwright
         import re as _re
-        matches = _re.findall(r'(\d+\.\d+)%', r.text)
-        # Filter to plausible US inflation range (0-15%)
-        candidates = [float(m) for m in matches if 0.1 <= float(m) <= 15.0]
-        if not candidates:
-            log("    Truflation no plausible inflation value on homepage")
-            return None
-        # Truflation tends to render the headline rate first
-        current = candidates[0]
-        # Build a single-point series with today's date
+        with sync_playwright() as p:
+            b = p.chromium.launch(headless=True)
+            page = b.new_page()
+            page.goto('https://truflation.com/marketplace/us-inflation-rate', timeout=40000)
+            page.wait_for_load_state('networkidle', timeout=20000)
+            body = page.locator('body').inner_text()
+            b.close()
+        # Find the "1.X%" headline. Truflation's marketplace page renders:
+        # "Updated <date> Year over year change updating daily ... Upgrade to see latest 1.76% +0.13"
+        m = _re.search(r'(?:latest|YoY|Year over year[^0-9]*)\s*(\d+\.\d{1,3})\s*%', body, _re.IGNORECASE)
+        if not m:
+            # Fallback: any 0.x% to 9.x% pattern (US YoY inflation reasonable range)
+            matches = _re.findall(r'(\d+\.\d{1,3})\s*%', body)
+            candidates = [float(x) for x in matches if 0.1 <= float(x) <= 15.0]
+            if not candidates:
+                log("    Truflation no plausible value")
+                return None
+            current = candidates[0]
+        else:
+            current = float(m.group(1))
         today = datetime.now()
         series = [{"date": fmt_date(today), "value": current}]
         return {
-            "label": "Truflation US Inflation",
+            "label": "Truflation US Inflation Rate",
             "unit": "%",
             "series": series,
             "current": current,
-            "_note": "Daily snapshot from truflation.com homepage. History accumulates one point per cron run.",
+            "_note": "Daily snapshot from truflation.com/marketplace/us-inflation-rate via Playwright. YoY change.",
         }
     except Exception as e:
         log(f"    Truflation failed: {e}")
@@ -921,16 +934,23 @@ def fetch_truflation() -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def fetch_ism_pmi() -> dict:
-    log("  ISM Manufacturing PMI (Trading Economics)")
+    """ISM Manufacturing PMI from investing.com (Nick's specified URL).
+    Uses cloudscraper to bypass their Cloudflare gate. Extracts the latest
+    'actual' value from the JSON embedded in the page."""
+    log("  ISM Manufacturing PMI (investing.com via cloudscraper)")
     try:
-        url = "https://tradingeconomics.com/united-states/business-confidence"
-        r = requests.get(url, timeout=20, headers=HEADERS)
-        r.raise_for_status()
-        import re as _re
-        # TE renders the latest value in <td id="actual" ...>VALUE</td>
-        m = _re.search(r'<td[^>]*id=[\"\']actual[\"\'][^>]*>\s*([0-9.]+)', r.text)
+        ensure_packages("cloudscraper")
+        import cloudscraper, re as _re
+        s = cloudscraper.create_scraper()
+        url = "https://www.investing.com/economic-calendar/ism-manufacturing-pmi-173"
+        r = s.get(url, timeout=30)
+        if r.status_code != 200:
+            log(f"    investing.com HTTP {r.status_code}")
+            return None
+        # Investing.com embeds the latest actual value in inline JSON: "actual":"52.7"
+        m = _re.search(r'"actual"\s*:\s*"?([0-9.]+)', r.text)
         if not m:
-            log("    ISM PMI no value at id=actual")
+            log("    investing.com no 'actual' field in inline JSON")
             return None
         try:
             current = float(m.group(1))
@@ -946,7 +966,7 @@ def fetch_ism_pmi() -> dict:
             "unit": "",
             "series": series,
             "current": current,
-            "_note": "Latest published monthly value from Trading Economics. Updated 1st business day of each month at ISM release.",
+            "_note": "Latest published monthly value from investing.com. Updated 1st business day of each month at ISM release.",
         }
     except Exception as e:
         log(f"    ISM PMI failed: {e}")
@@ -1007,29 +1027,47 @@ def fetch_defillama_nfts() -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def fetch_strategic_eth_reserve() -> dict:
-    log("  Strategic ETH Reserve (homepage scrape)")
+    """Strategic ETH Reserve total — scraped via Playwright with explicit
+    domcontentloaded + 8s wait + scroll, to give the React app time to render
+    the 'SΞR ENTITIES X.XXM ETH' headline on the homepage."""
+    log("  Strategic ETH Reserve (Playwright on rendered page)")
     try:
-        url = "https://www.strategicethreserve.xyz/"
-        r = requests.get(url, timeout=20, headers=HEADERS)
-        r.raise_for_status()
+        ensure_packages("playwright")
+        from playwright.sync_api import sync_playwright
         import re as _re
-        # Look for the prominent total. Pattern: "X,XXX,XXX ETH" or large numbers near "Total"
-        # Try: large comma-formatted number followed by ETH
-        m = _re.search(r'([\d,]{6,})\s*ETH', r.text)
-        if m:
-            total_eth = float(m.group(1).replace(',', ''))
-        else:
-            # Fallback: largest comma-number near the word "reserve"
-            log("    Strategic ETH Reserve no clean ETH total pattern — skipping")
+        with sync_playwright() as p:
+            b = p.chromium.launch(headless=True)
+            page = b.new_page()
+            page.goto('https://www.strategicethreserve.xyz/', timeout=40000)
+            page.wait_for_load_state('domcontentloaded')
+            page.wait_for_timeout(8000)
+            body = page.locator('body').inner_text()
+            b.close()
+        # Page renders: "SΞR ENTITIES\n7.33M ETH\n$16.03B\nParticipants: 67\n% of Supply: 6.06%"
+        m = _re.search(r'(\d+(?:\.\d+)?)\s*M\s*ETH', body)
+        if not m:
+            log("    Strategic ETH Reserve no 'X.XXM ETH' pattern in rendered body")
             return None
+        total_eth_millions = float(m.group(1))
+        total_eth = total_eth_millions * 1e6
+        # Also try to extract participants + USD value for the metadata note
+        m_usd = _re.search(r'\$\s*(\d+(?:\.\d+)?)\s*B', body)
+        m_p = _re.search(r'Participants:\s*(\d+)', body)
+        m_pct = _re.search(r'% of Supply:\s*([\d.]+)\s*%', body)
         today = datetime.now()
         series = [{"date": fmt_date(today), "value": round(total_eth, 0)}]
+        usd_b = float(m_usd.group(1)) if m_usd else None
+        n_part = int(m_p.group(1)) if m_p else None
+        pct_supply = float(m_pct.group(1)) if m_pct else None
         return {
-            "label": "Strategic ETH Reserve — Total ETH",
+            "label": "Strategic ETH Reserve — Total ETH Held",
             "unit": "ETH",
             "series": series,
             "current": round(total_eth, 0),
-            "_note": "Daily snapshot from strategicethreserve.xyz. Tracks ETH held by listed companies.",
+            "_note": (
+                f"Daily snapshot via Playwright. {total_eth_millions}M ETH "
+                f"(${usd_b}B) across {n_part} participants ({pct_supply}% of supply)."
+            ),
         }
     except Exception as e:
         log(f"    Strategic ETH Reserve failed: {e}")
