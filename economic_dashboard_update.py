@@ -1027,10 +1027,11 @@ def fetch_defillama_nfts() -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def fetch_strategic_eth_reserve() -> dict:
-    """Strategic ETH Reserve total — scraped via Playwright with explicit
-    domcontentloaded + 8s wait + scroll, to give the React app time to render
-    the 'SΞR ENTITIES X.XXM ETH' headline on the homepage."""
-    log("  Strategic ETH Reserve (Playwright on rendered page)")
+    """Strategic ETH Reserve — Playwright + SVG chart extraction.
+    Parses the recharts area chart's path data to recover historical ETH
+    holdings going back to May 2025 (~12 months). Maps SVG (x,y) coords to
+    (date, eth) via the chart's axis tick pixel positions."""
+    log("  Strategic ETH Reserve (Playwright + SVG path → historical series)")
     try:
         ensure_packages("playwright")
         from playwright.sync_api import sync_playwright
@@ -1042,31 +1043,173 @@ def fetch_strategic_eth_reserve() -> dict:
             page.wait_for_load_state('domcontentloaded')
             page.wait_for_timeout(8000)
             body = page.locator('body').inner_text()
+            chart_info = page.evaluate('''() => {
+                const svgs = document.querySelectorAll('svg');
+                for (const svg of svgs) {
+                    const path = svg.querySelector('.recharts-area-curve, .recharts-line-curve');
+                    if (!path) continue;
+                    const d = path.getAttribute('d');
+                    const viewBox = svg.getAttribute('viewBox') || '';
+                    // Capture each axis tick's pixel position + text for mapping
+                    const xTicks = Array.from(svg.querySelectorAll('.recharts-xAxis .recharts-cartesian-axis-tick text'))
+                        .map(e => ({x: parseFloat(e.getAttribute('x')||'0'), text: e.textContent}));
+                    const yTicks = Array.from(svg.querySelectorAll('.recharts-yAxis .recharts-cartesian-axis-tick text'))
+                        .map(e => ({y: parseFloat(e.getAttribute('y')||'0'), text: e.textContent}));
+                    return {d, viewBox, xTicks, yTicks};
+                }
+                return null;
+            }''')
             b.close()
-        # Page renders: "SΞR ENTITIES\n7.33M ETH\n$16.03B\nParticipants: 67\n% of Supply: 6.06%"
-        m = _re.search(r'(\d+(?:\.\d+)?)\s*M\s*ETH', body)
-        if not m:
-            log("    Strategic ETH Reserve no 'X.XXM ETH' pattern in rendered body")
+        # Parse latest from body text (always works)
+        latest_m = _re.search(r'(\d+(?:\.\d+)?)\s*M\s*ETH', body)
+        latest_eth = float(latest_m.group(1)) * 1e6 if latest_m else None
+        latest_usd_b = float(m_usd.group(1)) if (m_usd := _re.search(r'\$\s*(\d+(?:\.\d+)?)\s*B', body)) else None
+        latest_part = int(m_p.group(1)) if (m_p := _re.search(r'Participants:\s*(\d+)', body)) else None
+
+        # Parse historical from SVG path
+        historical_series = []
+        if chart_info and chart_info.get('d'):
+            d = chart_info['d']
+            # Extract every (x,y) endpoint of the path. M is anchor; each C
+            # gives 3 (x,y) pairs but the actual data point is the END (3rd pair).
+            # Recharts uses "C x1,y1,x2,y2,x3,y3" with comma-separated triples.
+            points = []
+            m_match = _re.match(r'M([\d.]+),([\d.]+)', d)
+            if m_match:
+                points.append((float(m_match.group(1)), float(m_match.group(2))))
+            # Each C span: extract 3 pairs, take the last
+            for c_block in _re.finditer(r'C([^MC]+)', d):
+                pairs = _re.findall(r'([\d.]+),([\d.]+)', c_block.group(1))
+                if len(pairs) >= 3:
+                    points.append((float(pairs[2][0]), float(pairs[2][1])))
+
+            # Build x-axis date mapping from tick positions
+            x_ticks = chart_info.get('xTicks', []) or []
+            y_ticks = chart_info.get('yTicks', []) or []
+            # Parse Y ticks like "0", "2M", "4M", "6M", "8M" → ETH count
+            y_ref = []
+            for t in y_ticks:
+                txt = (t.get('text') or '').strip()
+                m = _re.match(r'(\d+(?:\.\d+)?)\s*M$', txt)
+                if m:
+                    y_ref.append((t['y'], float(m.group(1)) * 1e6))
+                elif txt == '0':
+                    y_ref.append((t['y'], 0.0))
+            # Parse X ticks like "May 2025", "Aug 2025", "Nov 2025", "Jan", "Mar"
+            # — assume Jan/Mar without year refers to current year
+            x_ref = []
+            for t in x_ticks:
+                txt = (t.get('text') or '').strip()
+                dt = None
+                # "Mon YYYY"
+                m = _re.match(r'(\w{3})\s+(\d{4})', txt)
+                if m:
+                    try:
+                        dt = datetime.strptime(f'1 {m.group(1)} {m.group(2)}', '%d %b %Y')
+                    except ValueError:
+                        pass
+                else:
+                    # "Mon" — assume current year
+                    m2 = _re.match(r'(\w{3})$', txt)
+                    if m2:
+                        try:
+                            dt = datetime.strptime(f'1 {m2.group(1)} {datetime.now().year}', '%d %b %Y')
+                        except ValueError:
+                            pass
+                if dt is not None:
+                    x_ref.append((t['x'], dt))
+            # Sort references
+            y_ref.sort(key=lambda r: r[0])
+            x_ref.sort(key=lambda r: r[0])
+
+            if len(x_ref) >= 2 and len(y_ref) >= 2:
+                # Linear interpolation from SVG (x,y) → (date, eth)
+                def interp_x(x_svg):
+                    # Find bracketing ticks
+                    for i in range(len(x_ref) - 1):
+                        x0, dt0 = x_ref[i]
+                        x1, dt1 = x_ref[i + 1]
+                        if x0 <= x_svg <= x1:
+                            frac = (x_svg - x0) / (x1 - x0) if x1 > x0 else 0
+                            delta = (dt1 - dt0).total_seconds()
+                            return dt0 + datetime.fromtimestamp(0).__class__.__sub__(
+                                dt0, dt0
+                            ).__class__(seconds=delta * frac) if False else (
+                                dt0 + (dt1 - dt0) * frac
+                            )
+                    # Extrapolate using last two
+                    if x_svg < x_ref[0][0]:
+                        x0, dt0 = x_ref[0]; x1, dt1 = x_ref[1]
+                    else:
+                        x0, dt0 = x_ref[-2]; x1, dt1 = x_ref[-1]
+                    frac = (x_svg - x0) / (x1 - x0) if x1 > x0 else 0
+                    return dt0 + (dt1 - dt0) * frac
+                def interp_y(y_svg):
+                    # Y is inverted in SVG (top of viewport is min y)
+                    # Find bracketing ticks (sorted by y ascending)
+                    for i in range(len(y_ref) - 1):
+                        y0, e0 = y_ref[i]
+                        y1, e1 = y_ref[i + 1]
+                        if y0 <= y_svg <= y1:
+                            frac = (y_svg - y0) / (y1 - y0) if y1 > y0 else 0
+                            return e0 + (e1 - e0) * frac
+                    if y_svg < y_ref[0][0]:
+                        y0, e0 = y_ref[0]; y1, e1 = y_ref[1]
+                    else:
+                        y0, e0 = y_ref[-2]; y1, e1 = y_ref[-1]
+                    frac = (y_svg - y0) / (y1 - y0) if y1 > y0 else 0
+                    return max(0, e0 + (e1 - e0) * frac)
+
+                seen_dates = set()
+                for x_svg, y_svg in points:
+                    try:
+                        dt = interp_x(x_svg)
+                        eth = interp_y(y_svg)
+                        date_key = dt.strftime('%Y-%m-%d')
+                        if date_key in seen_dates:
+                            continue
+                        seen_dates.add(date_key)
+                        historical_series.append({
+                            "date": fmt_date(dt),
+                            "value": round(eth, 0),
+                        })
+                    except Exception:
+                        continue
+                # Sort by date (date format is d/m/yy — re-parse for sort)
+                def _dt_of(s):
+                    try:
+                        d, m, y = s['date'].split('/')
+                        yr = int(y); yr = 2000 + yr if yr < 100 else yr
+                        return datetime(yr, int(m), int(d))
+                    except Exception:
+                        return datetime(1970, 1, 1)
+                historical_series.sort(key=_dt_of)
+
+        # If we have history, append today's verified value as the last point
+        if latest_eth is not None:
+            today = datetime.now()
+            today_key = fmt_date(today)
+            # Replace or append
+            if historical_series and historical_series[-1]['date'] == today_key:
+                historical_series[-1] = {"date": today_key, "value": round(latest_eth, 0)}
+            else:
+                historical_series.append({"date": today_key, "value": round(latest_eth, 0)})
+            current = round(latest_eth, 0)
+        elif historical_series:
+            current = historical_series[-1]['value']
+        else:
             return None
-        total_eth_millions = float(m.group(1))
-        total_eth = total_eth_millions * 1e6
-        # Also try to extract participants + USD value for the metadata note
-        m_usd = _re.search(r'\$\s*(\d+(?:\.\d+)?)\s*B', body)
-        m_p = _re.search(r'Participants:\s*(\d+)', body)
-        m_pct = _re.search(r'% of Supply:\s*([\d.]+)\s*%', body)
-        today = datetime.now()
-        series = [{"date": fmt_date(today), "value": round(total_eth, 0)}]
-        usd_b = float(m_usd.group(1)) if m_usd else None
-        n_part = int(m_p.group(1)) if m_p else None
-        pct_supply = float(m_pct.group(1)) if m_pct else None
+
         return {
             "label": "Strategic ETH Reserve — Total ETH Held",
             "unit": "ETH",
-            "series": series,
-            "current": round(total_eth, 0),
+            "series": historical_series,
+            "current": current,
             "_note": (
-                f"Daily snapshot via Playwright. {total_eth_millions}M ETH "
-                f"(${usd_b}B) across {n_part} participants ({pct_supply}% of supply)."
+                f"{len(historical_series)} historical points (extracted from chart SVG) "
+                f"+ latest verified value: "
+                f"{latest_eth/1e6 if latest_eth else 0:.2f}M ETH "
+                f"(${latest_usd_b}B, {latest_part} participants)."
             ),
         }
     except Exception as e:
@@ -1084,43 +1227,73 @@ def fetch_strategic_eth_reserve() -> dict:
 # tokens. Free public API. Replaces the failed taostats.io scrape (anti-bot).
 # ─────────────────────────────────────────────────────────────────────────────
 
-def fetch_tao_subnets_aggregate() -> dict:
-    log("  TAO Subnet Aggregate Market Cap (CoinGecko bittensor-subnets category)")
+def fetch_tao_subnets_aggregate(history_days: int = 365) -> dict:
+    """TAO Subnet Aggregate Market Cap with HISTORICAL backfill.
+    Pulls each individual subnet alpha token's daily market cap from CoinGecko's
+    free /coins/{id}/market_chart endpoint, sums across subnets per day, and
+    returns a real time series back ~history_days. The category-level aggregate
+    is also used to verify the latest sum against a known reference."""
+    log(f"  TAO Subnet Aggregate Market Cap (CoinGecko, with {history_days}d history)")
     try:
-        cat_url = "https://api.coingecko.com/api/v3/coins/categories"
-        r1 = requests.get(cat_url, timeout=20, headers=HEADERS)
-        r1.raise_for_status()
-        cats = r1.json()
-        agg = next((c for c in cats if (c.get('id') or '') == 'bittensor-subnets'), None)
-        if not agg:
-            log("    bittensor-subnets category not in CoinGecko response")
+        from collections import defaultdict
+        import time as _time
+
+        # Step 1 — list every subnet in the category (up to 100)
+        markets_url = ("https://api.coingecko.com/api/v3/coins/markets"
+                       "?vs_currency=usd&category=bittensor-subnets&per_page=100")
+        r = requests.get(markets_url, timeout=20, headers=HEADERS)
+        r.raise_for_status()
+        subnets = r.json()
+        if not subnets:
             return None
-        mcap = float(agg.get('market_cap') or 0)
-        vol_24h = float(agg.get('volume_24h') or 0)
-        if not mcap:
+        log(f"    pulling history for {len(subnets)} subnets (rate-limited; ~{int(len(subnets)*1.5)}s)")
+
+        # Step 2 — pull historical mcap for each, summing per UTC day
+        daily_agg = defaultdict(float)
+        successes = 0
+        for s in subnets:
+            coin_id = s.get('id')
+            if not coin_id:
+                continue
+            _time.sleep(1.3)  # CoinGecko free-tier ~30 req/min cap; stay well under
+            try:
+                chart_url = (f"https://api.coingecko.com/api/v3/coins/{coin_id}"
+                             f"/market_chart?vs_currency=usd&days={history_days}&interval=daily")
+                r2 = requests.get(chart_url, timeout=20, headers=HEADERS)
+                if r2.status_code != 200:
+                    continue
+                data = r2.json()
+                for ts_ms, mcap in data.get('market_caps', []) or []:
+                    if mcap is None:
+                        continue
+                    dt = datetime.fromtimestamp(ts_ms / 1000)
+                    date_key = dt.strftime('%Y-%m-%d')
+                    daily_agg[date_key] += float(mcap)
+                successes += 1
+            except Exception:
+                continue
+        if not daily_agg:
+            log("    no historical data aggregated — falling back to category snapshot")
             return None
-        mcap_bn = round(mcap / 1e9, 3)
-        vol_bn = round(vol_24h / 1e9, 3)
-        # Count subnets via the markets endpoint
-        try:
-            markets_url = ("https://api.coingecko.com/api/v3/coins/markets"
-                           "?vs_currency=usd&category=bittensor-subnets&per_page=100")
-            r2 = requests.get(markets_url, timeout=20, headers=HEADERS)
-            r2.raise_for_status()
-            subnet_count = len(r2.json())
-        except Exception:
-            subnet_count = None
-        today = datetime.now()
-        series = [{"date": fmt_date(today), "value": mcap_bn}]
+
+        # Step 3 — build the time series (USD billions, daily)
+        series = []
+        for date_str in sorted(daily_agg):
+            try:
+                dt = datetime.strptime(date_str, '%Y-%m-%d')
+            except ValueError:
+                continue
+            series.append({"date": fmt_date(dt), "value": round(daily_agg[date_str] / 1e9, 3)})
         return {
             "label": "TAO Subnet Aggregate Mkt Cap (Bittensor)",
             "unit": "USD bn",
             "series": series,
-            "current": mcap_bn,
+            "current": series[-1]['value'] if series else None,
             "_note": (
-                f"Daily snapshot from CoinGecko 'bittensor-subnets' category — sum of "
-                f"all subnet alpha tokens. {subnet_count or '?'} subnets tracked. "
-                f"24h volume: ${vol_bn}B. Replaces taostats.io/subnets (anti-bot blocked)."
+                f"Daily aggregate sum of {successes}/{len(subnets)} subnet alpha tokens "
+                f"via CoinGecko per-coin /market_chart endpoint. {len(series)} historical "
+                f"daily points (~{history_days}d). Subnet roster snapshot per cron — "
+                f"new subnets appear in the aggregate only after they list on CoinGecko."
             ),
         }
     except Exception as e:
