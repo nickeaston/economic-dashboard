@@ -823,40 +823,46 @@ def fetch_ultrasound_burn() -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def fetch_gscpi() -> dict:
-    log("  NY Fed GSCPI (xlsx)")
+    """NY Fed serves the file as legacy .xls (CFB format), not .xlsx.
+    openpyxl can't parse .xls; xlrd 1.x can. Use xlrd."""
+    log("  NY Fed GSCPI (legacy xls via xlrd)")
     try:
-        ensure_packages("openpyxl")
-        from openpyxl import load_workbook
+        ensure_packages("xlrd==1.2.0")
+        import xlrd
         url = "https://www.newyorkfed.org/medialibrary/research/interactives/gscpi/downloads/gscpi_data.xlsx"
         r = requests.get(url, timeout=30, headers=HEADERS)
         r.raise_for_status()
-        wb = load_workbook(io.BytesIO(r.content), read_only=True, data_only=True)
-        # GSCPI publishes in a sheet that usually has one Date column + one GSCPI column.
-        # Probe sheets to find the one with date + numeric values.
+        wb = xlrd.open_workbook(file_contents=r.content)
         series = []
-        for ws in wb.worksheets:
+        for sheet_idx in range(wb.nsheets):
+            ws = wb.sheet_by_index(sheet_idx)
             tmp = []
-            for row in ws.iter_rows(min_row=2, values_only=True):
-                if not row or row[0] is None:
+            for row_idx in range(1, ws.nrows):
+                row = ws.row_values(row_idx)
+                if not row or row[0] in (None, ""):
                     continue
                 cell0 = row[0]
                 dt = None
-                if isinstance(cell0, datetime):
-                    dt = cell0
-                else:
-                    for fmt in ("%Y-%m-%d", "%Y-%m", "%b-%y", "%b-%Y", "%m/%d/%Y"):
+                # xlrd dates come back as floats (Excel date serial); use xldate
+                if isinstance(cell0, (int, float)):
+                    try:
+                        tup = xlrd.xldate_as_tuple(cell0, wb.datemode)
+                        dt = datetime(*tup[:6])
+                    except Exception:
+                        pass
+                if dt is None and isinstance(cell0, str):
+                    for fmt in ("%Y-%m-%d", "%Y-%m", "%b-%y", "%b-%Y", "%m/%d/%Y",
+                                "%d-%b-%Y", "%d-%b-%y"):  # GSCPI uses 30-Apr-2026
                         try:
-                            dt = datetime.strptime(str(cell0).strip(), fmt)
-                            break
+                            dt = datetime.strptime(cell0.strip(), fmt); break
                         except Exception:
                             pass
                 if dt is None or dt.year < 2014:
                     continue
-                # Find first numeric column (skip header rows)
                 v = None
                 for c in row[1:]:
                     try:
-                        if c is None or isinstance(c, str):
+                        if c is None or c == "" or isinstance(c, str):
                             continue
                         v = float(c); break
                     except Exception:
@@ -871,6 +877,196 @@ def fetch_gscpi() -> dict:
         return {"label": "NY Fed GSCPI", "unit": "z-score", "series": series}
     except Exception as e:
         log(f"    GSCPI failed: {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Truflation US Inflation (homepage scrape — current value only, no history)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_truflation() -> dict:
+    log("  Truflation US Inflation (homepage scrape)")
+    try:
+        url = "https://truflation.com"
+        r = requests.get(url, timeout=20, headers=HEADERS)
+        r.raise_for_status()
+        # Their homepage shows the current inflation rate as e.g. "5.99%"
+        # in a prominent number. Multiple matches expected; pick the first sensible one.
+        import re as _re
+        matches = _re.findall(r'(\d+\.\d+)%', r.text)
+        # Filter to plausible US inflation range (0-15%)
+        candidates = [float(m) for m in matches if 0.1 <= float(m) <= 15.0]
+        if not candidates:
+            log("    Truflation no plausible inflation value on homepage")
+            return None
+        # Truflation tends to render the headline rate first
+        current = candidates[0]
+        # Build a single-point series with today's date
+        today = datetime.now()
+        series = [{"date": fmt_date(today), "value": current}]
+        return {
+            "label": "Truflation US Inflation",
+            "unit": "%",
+            "series": series,
+            "current": current,
+            "_note": "Daily snapshot from truflation.com homepage. History accumulates one point per cron run.",
+        }
+    except Exception as e:
+        log(f"    Truflation failed: {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ISM Manufacturing PMI (Trading Economics scrape — latest monthly value)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_ism_pmi() -> dict:
+    log("  ISM Manufacturing PMI (Trading Economics)")
+    try:
+        url = "https://tradingeconomics.com/united-states/business-confidence"
+        r = requests.get(url, timeout=20, headers=HEADERS)
+        r.raise_for_status()
+        import re as _re
+        # TE renders the latest value in <td id="actual" ...>VALUE</td>
+        m = _re.search(r'<td[^>]*id=[\"\']actual[\"\'][^>]*>\s*([0-9.]+)', r.text)
+        if not m:
+            log("    ISM PMI no value at id=actual")
+            return None
+        try:
+            current = float(m.group(1))
+        except ValueError:
+            return None
+        if not (20 <= current <= 90):
+            log(f"    ISM PMI {current} out of plausible 20-90 range")
+            return None
+        today = datetime.now()
+        series = [{"date": fmt_date(today), "value": current}]
+        return {
+            "label": "ISM Manufacturing PMI",
+            "unit": "",
+            "series": series,
+            "current": current,
+            "_note": "Latest published monthly value from Trading Economics. Updated 1st business day of each month at ISM release.",
+        }
+    except Exception as e:
+        log(f"    ISM PMI failed: {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DeFiLlama NFT aggregate market cap (computed from collections endpoint)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_defillama_nfts() -> dict:
+    log("  DeFiLlama NFT aggregate market cap (computed from collections)")
+    try:
+        url = "https://nft.llama.fi/collections"
+        r = requests.get(url, timeout=45, headers=HEADERS)
+        r.raise_for_status()
+        collections = r.json()
+        # Each collection: floorPrice (in ETH), totalSupply
+        # Aggregate market cap = sum(floorPrice × totalSupply) × ETH USD price.
+        # Use a recent ETH price from yfinance as the multiplier.
+        import yfinance as yf
+        eth_hist = yf.Ticker("ETH-USD").history(period="2d", interval="1d")
+        eth_price = float(eth_hist["Close"].iloc[-1]) if len(eth_hist) else None
+        if not eth_price:
+            log("    NFT mcap: no ETH price reference — skipping")
+            return None
+        total_eth = 0.0
+        n_used = 0
+        for c in collections:
+            try:
+                floor = c.get("floorPrice")
+                supply = c.get("totalSupply")
+                if floor is None or supply is None:
+                    continue
+                total_eth += float(floor) * float(supply)
+                n_used += 1
+            except Exception:
+                continue
+        if total_eth == 0:
+            return None
+        mcap_usd_bn = round((total_eth * eth_price) / 1e9, 2)
+        today = datetime.now()
+        series = [{"date": fmt_date(today), "value": mcap_usd_bn}]
+        return {
+            "label": "NFT Aggregate Mkt Cap (DeFiLlama)",
+            "unit": "USD bn",
+            "series": series,
+            "current": mcap_usd_bn,
+            "_note": f"Computed: sum(floor × supply) across {n_used} collections × ETH ${eth_price:.0f}. Snapshot per cron run.",
+        }
+    except Exception as e:
+        log(f"    DeFiLlama NFT failed: {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Strategic ETH Reserve (homepage scrape — total ETH held by listed companies)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_strategic_eth_reserve() -> dict:
+    log("  Strategic ETH Reserve (homepage scrape)")
+    try:
+        url = "https://www.strategicethreserve.xyz/"
+        r = requests.get(url, timeout=20, headers=HEADERS)
+        r.raise_for_status()
+        import re as _re
+        # Look for the prominent total. Pattern: "X,XXX,XXX ETH" or large numbers near "Total"
+        # Try: large comma-formatted number followed by ETH
+        m = _re.search(r'([\d,]{6,})\s*ETH', r.text)
+        if m:
+            total_eth = float(m.group(1).replace(',', ''))
+        else:
+            # Fallback: largest comma-number near the word "reserve"
+            log("    Strategic ETH Reserve no clean ETH total pattern — skipping")
+            return None
+        today = datetime.now()
+        series = [{"date": fmt_date(today), "value": round(total_eth, 0)}]
+        return {
+            "label": "Strategic ETH Reserve — Total ETH",
+            "unit": "ETH",
+            "series": series,
+            "current": round(total_eth, 0),
+            "_note": "Daily snapshot from strategicethreserve.xyz. Tracks ETH held by listed companies.",
+        }
+    except Exception as e:
+        log(f"    Strategic ETH Reserve failed: {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# tao.app subnet (taostats.io scrape — TAO total mkt cap from public stats site)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_tao_subnet() -> dict:
+    """Bittensor TAO market cap via CoinGecko's free public API.
+    Originally tried scraping taostats.io but it's a Next.js SPA with
+    JS-loaded data — CoinGecko gives us the same number via a clean JSON endpoint."""
+    log("  TAO Bittensor market cap (CoinGecko)")
+    try:
+        url = ("https://api.coingecko.com/api/v3/simple/price"
+               "?ids=bittensor&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true")
+        r = requests.get(url, timeout=20, headers=HEADERS)
+        r.raise_for_status()
+        d = r.json().get("bittensor") or {}
+        mcap = d.get("usd_market_cap")
+        if not mcap:
+            log("    TAO/CoinGecko no market_cap field")
+            return None
+        mcap_usd_bn = round(float(mcap) / 1e9, 3)
+        today = datetime.now()
+        series = [{"date": fmt_date(today), "value": mcap_usd_bn}]
+        return {
+            "label": "TAO Market Cap (Bittensor, CoinGecko)",
+            "unit": "USD bn",
+            "series": series,
+            "current": mcap_usd_bn,
+            "_note": f"Snapshot per cron run. Spot price ${d.get('usd', '?')}, 24h vol ${d.get('usd_24h_vol', 0)/1e6:.1f}M.",
+        }
+    except Exception as e:
+        log(f"    TAO Bittensor failed: {e}")
         return None
 
 
@@ -996,6 +1192,9 @@ def build_data(cache: dict) -> dict:
     use("t10y2y",  fetch_fred_series("T10Y2Y",  "10Y-2Y Treasury Spread",      "%"), "T10Y2Y")
     use("tbill_3m", fetch_fred_series("DGS3MO", "3-Month T-Bill Yield",        "%"), "DGS3MO")
     use("unrate",  fetch_fred_series("UNRATE",  "US Unemployment Rate",        "%"), "UNRATE")
+    # Public scrapes (Batch 1 — 2026-05-07): single-point daily snapshots
+    use("truflation", fetch_truflation(),   "Truflation US Inflation")
+    use("ism_pmi",    fetch_ism_pmi(),      "ISM Manufacturing PMI")
 
     # ── Crypto Mkt Cap (new — Phase 1 wedge: Stables + ETH burn live;
     #    TAO/NFTs/Farside/Strategic ETH are source-only until keys/scrapers) ──
@@ -1006,6 +1205,10 @@ def build_data(cache: dict) -> dict:
         data["eth_burn"] = eth_burn
     elif "eth_burn" in cache:
         data["eth_burn"] = cache["eth_burn"]
+    # Batch 1 scrapes (2026-05-07)
+    use("nft_mcap",      fetch_defillama_nfts(),         "NFT Aggregate Mkt Cap")
+    use("strategic_eth", fetch_strategic_eth_reserve(),  "Strategic ETH Reserve")
+    use("tao_subnet",    fetch_tao_subnet(),             "TAO Subnet (Bittensor)")
 
     # ── Crypto Sentiment (new — Phase 1 wedge: F&G live;
     #    DeCenTrader liq map is source-only paywall) ──────────────────────────
