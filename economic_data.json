@@ -1049,14 +1049,14 @@
       },
       {
         "date": "4/5/26",
-        "value": 8859.4004
+        "value": 8866.2002
       },
       {
         "date": "7/5/26",
-        "value": 8859.4004
+        "value": 8866.2002
       }
     ],
-    "current": 8859.4004
+    "current": 8866.2002
   },
   "allords": {
     "label": "ASX All Ords",
@@ -2108,14 +2108,14 @@
       },
       {
         "date": "4/5/26",
-        "value": 9085.0996
+        "value": 9093.5996
       },
       {
         "date": "7/5/26",
-        "value": 9085.0996
+        "value": 9093.5996
       }
     ],
-    "current": 9085.0996
+    "current": 9093.5996
   },
   "smallcap": {
     "label": "ASX Small Cap",
@@ -3167,14 +3167,14 @@
       },
       {
         "date": "4/5/26",
-        "value": 3503.8
+        "value": 3516.7
       },
       {
         "date": "7/5/26",
-        "value": 3503.8
+        "value": 3516.7
       }
     ],
-    "current": 3503.8
+    "current": 3516.7
   },
   "audusd": {
     "label": "AUD/USD",
@@ -4226,14 +4226,14 @@
       },
       {
         "date": "4/5/26",
-        "value": 0.725
+        "value": 0.7246
       },
       {
         "date": "7/5/26",
-        "value": 0.725
+        "value": 0.7246
       }
     ],
-    "current": 0.725
+    "current": 0.7246
   },
   "interest_rate": {
     "label": "RBA Cash Rate",
@@ -47041,14 +47041,14 @@
       },
       {
         "date": "4/5/26",
-        "value": 4727.3999
+        "value": 4711.2998
       },
       {
         "date": "6/5/26",
-        "value": 4727.3999
+        "value": 4711.2998
       }
     ],
-    "current": 4727.3999
+    "current": 4711.2998
   },
   "oil": {
     "label": "WTI Crude Oil",
@@ -48100,14 +48100,14 @@
       },
       {
         "date": "4/5/26",
-        "value": 95.53
+        "value": 95.67
       },
       {
         "date": "6/5/26",
-        "value": 95.53
+        "value": 95.67
       }
     ],
-    "current": 95.53
+    "current": 95.67
   },
   "copper": {
     "label": "Copper",
@@ -49159,14 +49159,14 @@
       },
       {
         "date": "4/5/26",
-        "value": 13658.723
+        "value": 13637.779
       },
       {
         "date": "6/5/26",
-        "value": 13658.723
+        "value": 13637.779
       }
     ],
-    "current": 13658.723
+    "current": 13637.779
   },
   "iron_ore": {
     "label": "Iron Ore",
@@ -50253,7 +50253,7 @@
       },
       {
         "date": "11/7/16",
-        "value": 22.2178
+        "value": 22.2179
       },
       {
         "date": "25/7/16",
@@ -50433,7 +50433,7 @@
       },
       {
         "date": "2/4/18",
-        "value": 29.927
+        "value": 29.9271
       },
       {
         "date": "16/4/18",
@@ -50445,7 +50445,7 @@
       },
       {
         "date": "14/5/18",
-        "value": 31.5286
+        "value": 31.5287
       },
       {
         "date": "28/5/18",
@@ -50685,7 +50685,7 @@
       },
       {
         "date": "31/8/20",
-        "value": 37.26
+        "value": 37.2601
       },
       {
         "date": "14/9/20",
@@ -50825,7 +50825,7 @@
       },
       {
         "date": "3/1/22",
-        "value": 78.1764
+        "value": 78.1765
       },
       {
         "date": "17/1/22",
@@ -50845,7 +50845,7 @@
       },
       {
         "date": "14/3/22",
-        "value": 71.7984
+        "value": 71.7985
       },
       {
         "date": "28/3/22",
@@ -50857,7 +50857,7 @@
       },
       {
         "date": "25/4/22",
-        "value": 63.1626
+        "value": 63.1625
       },
       {
         "date": "9/5/22",
@@ -50921,7 +50921,7 @@
       },
       {
         "date": "5/12/22",
-        "value": 64.4121
+        "value": 64.412
       },
       {
         "date": "19/12/22",
@@ -51017,7 +51017,7 @@
       },
       {
         "date": "6/11/23",
-        "value": 46.4041
+        "value": 46.4042
       },
       {
         "date": "20/11/23",
@@ -51093,7 +51093,7 @@
       },
       {
         "date": "29/7/24",
-        "value": 36.9427
+        "value": 36.9428
       },
       {
         "date": "12/8/24",
@@ -51492,11 +51492,11 @@
       },
       {
         "date": "2/4/18",
-        "value": 23.0206
+        "value": 23.0207
       },
       {
         "date": "16/4/18",
-        "value": 24.9968
+        "value": 24.9969
       },
       {
         "date": "30/4/18",
@@ -51676,7 +51676,7 @@
       },
       {
         "date": "6/1/20",
-        "value": 22.723
+        "value": 22.7231
       },
       {
         "date": "20/1/20",
@@ -51708,7 +51708,7 @@
       },
       {
         "date": "27/4/20",
-        "value": 15.7778
+        "value": 15.7777
       },
       {
         "date": "11/5/20",
@@ -51856,7 +51856,7 @@
       },
       {
         "date": "27/9/21",
-        "value": 33.1788
+        "value": 33.1789
       },
       {
         "date": "11/10/21",
@@ -52443,7 +52443,7 @@
       },
       {
         "date": "20/3/17",
-        "value": 40.3587
+        "value": 40.3586
       },
       {
         "date": "3/4/17",
@@ -52459,7 +52459,7 @@
       },
       {
         "date": "15/5/17",
-        "value": 39.7007
+        "value": 39.7008
       },
       {
         "date": "29/5/17",
@@ -52515,7 +52515,7 @@
       },
       {
         "date": "27/11/17",
-        "value": 64.5874
+        "value": 64.5875
       },
       {
         "date": "11/12/17",
@@ -52535,7 +52535,7 @@
       },
       {
         "date": "5/2/18",
-        "value": 63.7912
+        "value": 63.7913
       },
       {
         "date": "19/2/18",
@@ -52667,7 +52667,7 @@
       },
       {
         "date": "13/5/19",
-        "value": 35.8829
+        "value": 35.883
       },
       {
         "date": "27/5/19",
@@ -52719,7 +52719,7 @@
       },
       {
         "date": "11/11/19",
-        "value": 33.1872
+        "value": 33.1871
       },
       {
         "date": "25/11/19",
@@ -52739,7 +52739,7 @@
       },
       {
         "date": "20/1/20",
-        "value": 35.7642
+        "value": 35.7641
       },
       {
         "date": "3/2/20",
@@ -57627,14 +57627,14 @@
       },
       {
         "date": "4/5/26",
-        "value": 62721.5898
+        "value": 62915.8711
       },
       {
         "date": "7/5/26",
-        "value": 62721.5898
+        "value": 62915.8711
       }
     ],
-    "current": 62721.5898
+    "current": 62915.8711
   },
   "china": {
     "label": "Shanghai SSE",
@@ -58662,14 +58662,14 @@
       },
       {
         "date": "4/5/26",
-        "value": 4166.709
+        "value": 4166.3345
       },
       {
         "date": "7/5/26",
-        "value": 4166.709
+        "value": 4166.3345
       }
     ],
-    "current": 4166.709
+    "current": 4166.3345
   },
   "dax": {
     "label": "DAX (Germany)",
@@ -61890,7 +61890,7 @@
       },
       {
         "date": "5/9/16",
-        "value": 29.6384
+        "value": 29.6383
       },
       {
         "date": "19/9/16",
@@ -61930,7 +61930,7 @@
       },
       {
         "date": "23/1/17",
-        "value": 30.5978
+        "value": 30.5979
       },
       {
         "date": "6/2/17",
@@ -61966,7 +61966,7 @@
       },
       {
         "date": "29/5/17",
-        "value": 34.1011
+        "value": 34.101
       },
       {
         "date": "12/6/17",
@@ -62034,7 +62034,7 @@
       },
       {
         "date": "22/1/18",
-        "value": 43.3729
+        "value": 43.3728
       },
       {
         "date": "5/2/18",
@@ -62050,7 +62050,7 @@
       },
       {
         "date": "19/3/18",
-        "value": 39.0506
+        "value": 39.0505
       },
       {
         "date": "2/4/18",
@@ -62066,7 +62066,7 @@
       },
       {
         "date": "14/5/18",
-        "value": 38.3676
+        "value": 38.3677
       },
       {
         "date": "28/5/18",
@@ -62170,7 +62170,7 @@
       },
       {
         "date": "13/5/19",
-        "value": 34.2806
+        "value": 34.2805
       },
       {
         "date": "27/5/19",
@@ -62258,7 +62258,7 @@
       },
       {
         "date": "16/3/20",
-        "value": 27.4602
+        "value": 27.4603
       },
       {
         "date": "30/3/20",
@@ -62330,7 +62330,7 @@
       },
       {
         "date": "23/11/20",
-        "value": 44.0716
+        "value": 44.0715
       },
       {
         "date": "7/12/20",
@@ -62542,7 +62542,7 @@
       },
       {
         "date": "5/12/22",
-        "value": 35.6924
+        "value": 35.6923
       },
       {
         "date": "19/12/22",
@@ -62911,20 +62911,20 @@
     "label": "Country Debt-to-GDP (%)",
     "govt": {
       "United States": 125.8,
+      "Germany": 64.6,
       "United Kingdom": 103.6,
       "Australia": 50.6,
-      "Germany": 64.6,
       "Japan": 204.4,
       "China": 106.9,
       "France": 118.4
     },
     "private": {
-      "China": 194.17,
       "United States": 201.22,
+      "Germany": 77.25,
       "United Kingdom": 112.66,
       "Australia": 129.32,
-      "Germany": 77.25,
       "Japan": 194.61,
+      "China": 194.17,
       "France": 107.58
     }
   },
@@ -65636,14 +65636,14 @@
       },
       {
         "date": "4/5/26",
-        "value": 97.915
+        "value": 97.974
       },
       {
         "date": "6/5/26",
-        "value": 97.914
+        "value": 97.974
       }
     ],
-    "current": 97.914
+    "current": 97.974
   },
   "t10y2y": {
     "label": "10Y-2Y Treasury Spread",
@@ -92733,9 +92733,13 @@
       {
         "date": "6/5/26",
         "value": 321.71
+      },
+      {
+        "date": "7/5/26",
+        "value": 320.96
       }
     ],
-    "current": 321.71
+    "current": 320.96
   },
   "eth_burn": {
     "label": "Ethereum Burn (Ultrasound)",
@@ -92743,22 +92747,22 @@
     "stats": [
       {
         "label": "Past 24 hr",
-        "eth": 118.13,
-        "usd": 279067.0
+        "eth": 118.93,
+        "usd": 280864.0
       },
       {
         "label": "Past 7 days",
-        "eth": 694.3,
-        "usd": 1606233.0
+        "eth": 692.77,
+        "usd": 1602889.0
       },
       {
         "label": "Past 30 days",
-        "eth": 4079.01,
-        "usd": 9474855.0
+        "eth": 4080.72,
+        "usd": 9478905.0
       }
     ],
     "series": [],
-    "current": 4079.01
+    "current": 4080.72
   },
   "nft_mcap": {
     "label": "NFT Aggregate Mkt Cap (DeFiLlama)",
@@ -92766,11 +92770,11 @@
     "series": [
       {
         "date": "7/5/26",
-        "value": 4.25
+        "value": 4.24
       }
     ],
-    "current": 4.25,
-    "_note": "Computed: sum(floor \u00d7 supply) across 4118 collections \u00d7 ETH $2327. Snapshot per cron run."
+    "current": 4.24,
+    "_note": "Computed: sum(floor \u00d7 supply) across 4118 collections \u00d7 ETH $2320. Snapshot per cron run."
   },
   "strategic_eth": {
     "label": "Strategic ETH Reserve",
@@ -92778,17 +92782,29 @@
     "series": [],
     "current": null
   },
-  "tao_subnet": {
-    "label": "TAO Market Cap (Bittensor, CoinGecko)",
+  "btc_etf_aum": {
+    "label": "BTC ETF \u2014 Cumulative Net Flows",
     "unit": "USD bn",
     "series": [
       {
         "date": "7/5/26",
-        "value": 2.933
+        "value": 59.66
       }
     ],
-    "current": 2.933,
-    "_note": "Snapshot per cron run. Spot price $305.73, 24h vol $437.3M."
+    "current": 59.66,
+    "_note": "Grand-total cumulative net flows since BTC ETF launch. Per-ETF breakdown ($M): [66089, 11370, 2119, 1758, 244, 361, 331, 1147, 92, 211, 2263]. Snapshot per cron run."
+  },
+  "eth_etf_aum": {
+    "label": "ETH ETF \u2014 Cumulative Net Flows",
+    "unit": "USD bn",
+    "series": [
+      {
+        "date": "7/5/26",
+        "value": 12.21
+      }
+    ],
+    "current": 12.21,
+    "_note": "Grand-total cumulative net flows since ETH ETF launch. Per-ETF breakdown ($M): [12021, 503, 2334, 381, 30, 166, 24, 65, 1944]. Snapshot per cron run."
   },
   "crypto_fng": {
     "label": "Crypto Fear & Greed Index",
@@ -94526,7 +94542,7 @@
     "current": 47
   },
   "_meta": {
-    "updated": "2026-05-07 11:58 AEST",
+    "updated": "2026-05-07 12:50 AEST",
     "source": "APIs: yfinance \u00b7 OECD \u00b7 IMF PCPS \u00b7 World Bank \u00b7 NY Fed \u00b7 DeFiLlama \u00b7 alternative.me \u00b7 Ultrasound Money",
     "series": [
       "asx200",
@@ -94569,7 +94585,8 @@
       "eth_burn",
       "nft_mcap",
       "strategic_eth",
-      "tao_subnet",
+      "btc_etf_aum",
+      "eth_etf_aum",
       "crypto_fng"
     ]
   }
