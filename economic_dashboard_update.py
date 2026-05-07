@@ -640,6 +640,85 @@ def fetch_country_debt() -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# FRED — keyed API for individual macro series
+# Key in macOS keychain: service="fred-api-key", account="fred-api"
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _fred_api_key() -> str | None:
+    """Look up the FRED API key from the macOS keychain. Returns None if not set."""
+    try:
+        import subprocess
+        out = subprocess.check_output(
+            ['security', 'find-generic-password', '-s', 'fred-api-key', '-w'],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        return out or None
+    except Exception:
+        return None
+
+
+def fetch_fred_series(series_id: str, label: str, unit: str,
+                      start_year: int = 2014) -> dict | None:
+    """Fetch a single FRED series via the keyed JSON API.
+    Falls back to the public CSV endpoint (no key needed) if the key isn't
+    available — same data, less metadata."""
+    log(f"  FRED {series_id:12s} → {label}")
+    key = _fred_api_key()
+    series = []
+    if key:
+        # Keyed JSON API — preferred path
+        url = (f"https://api.stlouisfed.org/fred/series/observations"
+               f"?series_id={series_id}&api_key={key}&file_type=json"
+               f"&observation_start={start_year}-01-01")
+        try:
+            r = requests.get(url, timeout=30, headers=HEADERS)
+            r.raise_for_status()
+            data = r.json()
+            for obs in data.get('observations', []):
+                date_str = obs.get('date', '')
+                val_str = obs.get('value', '')
+                if not date_str or val_str in ('', '.', 'NA'):
+                    continue
+                try:
+                    dt = datetime.strptime(date_str, '%Y-%m-%d')
+                    if dt.year < start_year:
+                        continue
+                    series.append({"date": fmt_date(dt), "value": round(float(val_str), 3)})
+                except Exception:
+                    continue
+        except Exception as e:
+            log(f"    FRED keyed API failed for {series_id}: {e.__class__.__name__} — falling back to CSV")
+            series = []
+    if not series:
+        # CSV fallback (no key needed)
+        url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
+        try:
+            r = requests.get(url, timeout=30, headers=HEADERS)
+            r.raise_for_status()
+            for line in r.text.strip().split("\n")[1:]:
+                parts = line.split(",")
+                if len(parts) != 2:
+                    continue
+                dt_str, val_str = parts[0].strip(), parts[1].strip()
+                if val_str in ("", ".", "NA"):
+                    continue
+                try:
+                    dt = datetime.strptime(dt_str, "%Y-%m-%d")
+                    if dt.year < start_year:
+                        continue
+                    series.append({"date": fmt_date(dt), "value": round(float(val_str), 3)})
+                except Exception:
+                    continue
+        except Exception as e:
+            log(f"    FRED CSV fallback failed for {series_id}: {e}")
+            return None
+    if not series:
+        return None
+    return {"label": label, "unit": unit, "series": series}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Crypto Fear & Greed (alternative.me) — free public API, no key
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -908,12 +987,15 @@ def build_data(cache: dict) -> dict:
         data["country_debt"] = {"label": "Country Debt-to-GDP (%)",
                                  "govt": {}, "private": {}}
 
-    # ── Macro Economics (new — Phase 1 wedge: GSCPI + MOVE + DXY live;
-    #    FRED + Truflation + ISM + DXY-embed are source-only until keys land) ──
+    # ── Macro Economics — Phase 1 + FRED (key acquired 2026-05-07) ───────────
     log("\n=== Macro Economics ===")
     use("gscpi",      fetch_gscpi(),                                          "NY Fed GSCPI")
     use("move_index", fetch_yf("^MOVE",     "MOVE Index (Bond Vol)", "pts"),  "MOVE Index")
     use("dxy",        fetch_yf("DX-Y.NYB",  "DXY (US Dollar Index)", "pts"),  "DXY")
+    # FRED-keyed live series — T10Y2Y (yield curve), DGS3MO (3M T-Bill), UNRATE (unemployment)
+    use("t10y2y",  fetch_fred_series("T10Y2Y",  "10Y-2Y Treasury Spread",      "%"), "T10Y2Y")
+    use("tbill_3m", fetch_fred_series("DGS3MO", "3-Month T-Bill Yield",        "%"), "DGS3MO")
+    use("unrate",  fetch_fred_series("UNRATE",  "US Unemployment Rate",        "%"), "UNRATE")
 
     # ── Crypto Mkt Cap (new — Phase 1 wedge: Stables + ETH burn live;
     #    TAO/NFTs/Farside/Strategic ETH are source-only until keys/scrapers) ──
