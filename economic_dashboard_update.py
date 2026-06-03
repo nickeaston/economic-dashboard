@@ -88,12 +88,18 @@ def fetch_yf(ticker: str, label: str, unit: str, multiply: float = 1.0) -> dict:
                 current_date = fmt_date(last_dt)
         except Exception:
             pass
-        # Replace/append last series point with today's data if we have it
+        # Replace/append last series point with today's data if we have it.
+        # Dedup guard (locked 2026-06-03 per Nick): if today's value equals the
+        # previous series value, REPLACE the previous point (update its date)
+        # instead of appending — otherwise running the cron every 3rd day on
+        # flat-priced series stacks duplicate consecutive points.
         if current_price is not None and current_date:
-            if series and series[-1]["date"] != current_date:
-                series.append({"date": current_date, "value": current_price})
-            elif series:
+            if series and series[-1]["date"] == current_date:
                 series[-1] = {"date": current_date, "value": current_price}
+            elif series and float(series[-1]["value"]) == float(current_price):
+                series[-1] = {"date": current_date, "value": current_price}
+            else:
+                series.append({"date": current_date, "value": current_price})
         if current_price is None and series:
             current_price = series[-1]["value"]
         return {"label": label, "unit": unit, "series": series, "current": current_price}
@@ -1580,6 +1586,27 @@ def build_data(cache: dict) -> dict:
     #    DeCenTrader liq map is source-only paywall) ──────────────────────────
     log("\n=== Crypto Sentiment ===")
     use("crypto_fng", fetch_fear_greed(), "Crypto Fear & Greed")
+
+    # ── Dedup pass (locked 2026-06-03 per Nick) ─────────────────────────────
+    # Collapse any tail of identical consecutive values in every series. Keeps
+    # the most-recent date label but drops the earlier identical point so the
+    # chart never shows two flat-value adjacent ticks.
+    dedup_count = 0
+    for key, node in data.items():
+        if key.startswith("_") or not isinstance(node, dict):
+            continue
+        s = node.get("series")
+        if not isinstance(s, list) or len(s) < 2:
+            continue
+        # Walk from end, drop duplicates of the value field only.
+        while len(s) >= 2 and isinstance(s[-1], dict) and isinstance(s[-2], dict):
+            v1, v2 = s[-1].get("value"), s[-2].get("value")
+            if v1 is None or v2 is None or v1 != v2:
+                break
+            s.pop(-2)  # drop the older duplicate, keep the most recent date
+            dedup_count += 1
+    if dedup_count:
+        log(f"  dedup: collapsed {dedup_count} adjacent-duplicate value points across all series")
 
     # ── Meta ─────────────────────────────────────────────────────────────────
     data["_meta"] = {

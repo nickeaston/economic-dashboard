@@ -4,7 +4,9 @@ on:
   schedule:
     # Runs daily at 21:30 UTC. That's 07:30 AEST (winter, UTC+10) or 08:30 AEDT
     # (summer, UTC+11) on the *next* day in Melbourne. The `check` job below
-    # filters so the refresh only happens on Melbourne's 1st and 15th.
+    # filters so the refresh only happens every third Melbourne day (days
+    # 3 · 6 · 9 · 12 · 15 · 18 · 21 · 24 · 27 · 30), 10 runs/month.
+    # Locked 2026-06-03 per Nick after 1st+15th cadence left tiles stale.
     - cron: '30 21 * * *'
   workflow_dispatch:
     # "Refresh Now" button on the dashboard links here — click "Run workflow".
@@ -27,11 +29,11 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "Manual trigger — proceeding."
             echo "proceed=yes" >> "$GITHUB_OUTPUT"
-          elif [ "$DAY" = "1" ] || [ "$DAY" = "15" ]; then
-            echo "Scheduled trigger on Melbourne day $DAY — proceeding."
+          elif [ "$((DAY % 3))" = "0" ]; then
+            echo "Scheduled trigger on Melbourne day $DAY (divisible by 3) — proceeding."
             echo "proceed=yes" >> "$GITHUB_OUTPUT"
           else
-            echo "Scheduled trigger on Melbourne day $DAY — skipping (only runs 1st/15th)."
+            echo "Scheduled trigger on Melbourne day $DAY — skipping (runs every 3rd day)."
             echo "proceed=no" >> "$GITHUB_OUTPUT"
           fi
 
