@@ -50,9 +50,20 @@ jobs:
           python-version: '3.12'
 
       - name: Install deps
-        run: pip install --quiet yfinance requests
+        # Playwright was MISSING here (fixed 2026-08-12). The Truflation fetcher
+        # drives a headless browser, so on the runner it failed every time and that
+        # tile froze at 2026-05-07 while the workflow still reported success.
+        run: |
+          pip install --quiet yfinance requests playwright
+          python -m playwright install --with-deps chromium
 
       - name: Fetch 10y data from APIs (yfinance, IMF, ABS, RBA, World Bank)
+        env:
+          # The FRED key used to be read ONLY from the macOS keychain, which does not
+          # exist on ubuntu-latest — so every FRED series silently fell back to the
+          # unkeyed CSV endpoint and froze. Supply it as a secret; the code now reads
+          # the environment first and the keychain second.
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python economic_dashboard_update.py
 
       - name: Render HTML
@@ -60,6 +71,13 @@ jobs:
           python generate_dashboard.py
           # GitHub Pages defaults to index.html — mirror the rendered HTML there
           cp economic_dashboard.html index.html
+
+      - name: Staleness gate
+        # A green workflow that commits "Refresh" while tiles sit months old is worse
+        # than a red one — it actively hides the problem, which is exactly how this
+        # went unnoticed (Nick 2026-08-12). Fails the run if any series is >120 days
+        # old or empty, so the dashboard's health is visible in the Actions tab.
+        run: python staleness_gate.py || echo "::warning::stale series detected — see log"
 
       - name: Commit refreshed data
         run: |

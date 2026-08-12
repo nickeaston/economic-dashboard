@@ -651,7 +651,23 @@ def fetch_country_debt() -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _fred_api_key() -> str | None:
-    """Look up the FRED API key from the macOS keychain. Returns None if not set."""
+    """FRED API key from the ENVIRONMENT first, macOS keychain second.
+
+    PORTABILITY BUG, fixed 2026-08-12 (Nick asked why the dashboard was stale).
+    This used the macOS-only `security` binary exclusively. The refresh runs on
+    ubuntu-latest in GitHub Actions, where `security` does not exist, so the key
+    was ALWAYS None on the runner and every FRED series silently degraded to the
+    unkeyed CSV endpoint — which FRED rate-limits from cloud IP ranges. Result:
+    t10y2y, tbill_3m and unrate froze in March-May 2026 while the workflow kept
+    committing "Refresh" every three days, so the repo looked perfectly healthy.
+
+    Env var first means CI can supply FRED_API_KEY as a secret; the keychain
+    fallback keeps local runs working with no configuration.
+    """
+    import os
+    env = (os.environ.get('FRED_API_KEY') or '').strip()
+    if env:
+        return env
     try:
         import subprocess
         out = subprocess.check_output(
