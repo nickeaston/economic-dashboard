@@ -2,12 +2,15 @@ name: Refresh economic dashboard
 
 on:
   schedule:
-    # Runs daily at 21:30 UTC. That's 07:30 AEST (winter, UTC+10) or 08:30 AEDT
+    # Runs daily at 20:10 UTC = 06:10 AEST / 07:10 AEDT — after the US close has
+    # settled and yfinance has the prior session, and before Nick's morning brief
+    # at 07:00, so the dashboard is current when he reads it. (Was 21:30 UTC.)
+    # Previously documented as 07:30 AEST (winter, UTC+10) or 08:30 AEDT
     # (summer, UTC+11) on the *next* day in Melbourne. The `check` job below
     # filters so the refresh only happens every third Melbourne day (days
     # 3 · 6 · 9 · 12 · 15 · 18 · 21 · 24 · 27 · 30), 10 runs/month.
     # Locked 2026-06-03 per Nick after 1st+15th cadence left tiles stale.
-    - cron: '30 21 * * *'
+    - cron: '10 20 * * *'
   workflow_dispatch:
     # "Refresh Now" button on the dashboard links here — click "Run workflow".
     # Manual dispatch bypasses the date gate and always refreshes.
@@ -23,17 +26,22 @@ jobs:
     steps:
       - id: gate
         run: |
-          DAY=$(TZ=Australia/Melbourne date +%-d)
+          # Gate on EPOCH DAY, not day-of-month (fixed 2026-08-12).
+          # day-of-month % 3 breaks at every month boundary: 30 → 3 is a 4-day gap in a
+          # 31-day month, and 27 → 3 is a 5-day gap after February. Nick asked for "every
+          # 3 days routinely", and epoch-day % 3 is genuinely every 3 days forever, with
+          # no month-length or leap-year seams.
+          EPOCH_DAY=$(( $(TZ=Australia/Melbourne date +%s) / 86400 ))
           MELB_DATE=$(TZ=Australia/Melbourne date '+%Y-%m-%d %H:%M %Z')
-          echo "Melbourne now: $MELB_DATE (day-of-month = $DAY)"
+          echo "Melbourne now: $MELB_DATE (epoch day = $EPOCH_DAY)"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "Manual trigger — proceeding."
             echo "proceed=yes" >> "$GITHUB_OUTPUT"
-          elif [ "$((DAY % 3))" = "0" ]; then
-            echo "Scheduled trigger on Melbourne day $DAY (divisible by 3) — proceeding."
+          elif [ "$((EPOCH_DAY % 3))" = "0" ]; then
+            echo "Epoch day $EPOCH_DAY divisible by 3 — proceeding."
             echo "proceed=yes" >> "$GITHUB_OUTPUT"
           else
-            echo "Scheduled trigger on Melbourne day $DAY — skipping (runs every 3rd day)."
+            echo "Epoch day $EPOCH_DAY — skipping (runs every 3rd day)."
             echo "proceed=no" >> "$GITHUB_OUTPUT"
           fi
 

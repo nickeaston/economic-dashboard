@@ -59,55 +59,21 @@ def load_cached() -> dict:
 # yfinance
 # ─────────────────────────────────────────────────────────────────────────────
 
-SAMPLE_DAYS = 3   # calendar days between recorded points (Nick 2026-08-12)
-
-
 def fetch_yf(ticker: str, label: str, unit: str, multiply: float = 1.0) -> dict:
     import yfinance as yf
     log(f"  yfinance  {ticker:20s} → {label}")
     try:
         t = yf.Ticker(ticker)
-        # 3-DAY SAMPLING (Nick 2026-08-12: "I want data every three days to be put in
-        # there, but it currently resides as once maybe every 15 days").
-        #
-        # This previously pulled WEEKLY bars and then kept every OTHER one (`i % 2`),
-        # which produced a FORTNIGHTLY series — 10y x 52wk / 2 = 260 points, exactly the
-        # 262 observed. The refresh cron ran every 3 days faithfully and then recorded a
-        # point a fortnight apart, so the cadence Nick asked for existed in the schedule
-        # and nowhere in the data.
-        #
-        # Now: daily bars, bucketed into 3-day windows, keeping the LAST close in each
-        # bucket. Markets are shut on weekends so buckets are uneven in trading terms;
-        # bucketing on the CALENDAR is what makes the spacing Nick actually sees regular.
-        hist = t.history(period="10y", interval="1d")
+        hist = t.history(period="10y", interval="1wk")
         if hist.empty:
             log(f"    WARNING: empty history for {ticker}")
             return None
-        # Sample on a FIXED calendar grid rather than bucketing as we walk the rows.
-        # Bucketing gave 2/5/2/5-day gaps because weekends shifted every boundary —
-        # regular on average, visibly irregular on the chart, which is exactly the
-        # complaint. A fixed grid steps every SAMPLE_DAYS regardless of trading days
-        # and carries the most recent close at or before each grid date forward.
-        rows = [(dt.date() if hasattr(dt, 'date') else dt, dt, row) for dt, row in hist.iterrows()]
+        rows = list(hist.iterrows())
         series = []
-        if rows:
-            import datetime as _dt
-            first, last = rows[0][0], rows[-1][0]
-            idx = 0
-            carry_dt = carry_row = None
-            grid = first
-            while grid <= last:
-                while idx < len(rows) and rows[idx][0] <= grid:
-                    carry_dt, carry_row = rows[idx][1], rows[idx][2]
-                    idx += 1
-                if carry_row is not None:
-                    # Label with the GRID date, not the underlying trading date. This is an
-                    # as-of series: "the last close at or before this date". Labelling with
-                    # the trading date reintroduced ragged 1/2/4/5-day gaps whenever the grid
-                    # landed on a weekend or holiday, which is the irregularity Nick saw.
-                    series.append({"date": fmt_date(grid),
-                                   "value": round(float(carry_row["Close"]) * multiply, 4)})
-                grid += _dt.timedelta(days=SAMPLE_DAYS)
+        for i, (dt, row) in enumerate(rows):
+            if i % 2 == 0 or i == len(rows) - 1:
+                v = round(float(row["Close"]) * multiply, 4)
+                series.append({"date": fmt_date(dt), "value": v})
         # Append today's daily close as the final series point (labeled with
         # today's date so the chart's rightmost tick reads e.g. "20/4/26" not
         # the Monday-of-week date yfinance uses for weekly bars).
@@ -1398,87 +1364,19 @@ def fetch_bis_cb_total_assets() -> dict:
             per_period[period][ref] = val
         if not per_period:
             return None
-        # RECENT-MONTH FIX (Nick 2026-08-12). This dropped any period where fewer than
-        # 4 of the 5 major CBs had reported. Central banks publish at different lags, so
-        # the most recent 3-4 months ALWAYS have partial coverage and were always
-        # discarded — the series froze ~4 months behind while every component was
-        # current. Now a partial month is carried: each missing major is filled from its
-        # own last known value, so the aggregate stays comparable rather than appearing
-        # to collapse when a reporter is simply late. Naively summing 3 CBs instead of 5
-        # would have printed a fake cliff, which is worse than being stale.
         series = []
-        last_known: dict[str, float] = {}
         for period, by_cb in sorted(per_period.items()):
-            if len(by_cb) < 3 and not last_known:
+            if len(by_cb) < 4:
                 continue
-            filled = dict(by_cb)
-            estimated = []
-            for ref in MAJOR_CBS:
-                if ref not in filled and ref in last_known:
-                    filled[ref] = last_known[ref]
-                    estimated.append(ref)
-            if len(filled) < 4:
-                continue
-            last_known.update(by_cb)
-            total = sum(filled.values())
+            total = sum(by_cb.values())
             try:
                 dt = datetime.strptime(period, '%Y-%m')
             except ValueError:
                 continue
-            pt = {"date": fmt_date(dt), "value": round(total / 1000, 2)}
-            if estimated:
-                # Visible in the data, so a partially-estimated point can never be
-                # mistaken for a fully reported one.
-                pt["estimated_from_carry"] = sorted(estimated)
-            series.append(pt)
+            # BIS values are in $ billions; convert to trillions
+            series.append({"date": fmt_date(dt), "value": round(total / 1000, 2)})
         if not series:
             return None
-        # BIS EXTENSION (Nick 2026-08-12: "find the best solution for that data point,
-        # if you need to go to another data source to find it, please do").
-        # BIS WS_CBTA is the best HISTORY — break-adjusted, spliced, 50+ economies — but
-        # it publishes ~4 months in arrears, so the tile froze at 2026-04 while global
-        # liquidity kept moving. FRED carries Fed (WALCL), ECB (ECBASSETSW) and BOJ
-        # (JPNASSETS) within days. We extend the BIS series with a FRED-derived
-        # Fed+ECB+BOJ aggregate, RATIO-MATCHED at the final BIS month so the join has no
-        # step. The ratio (rather than raw substitution) is what makes this honest: the
-        # two aggregates cover different CB sets, so only their SHAPE is transferable,
-        # not their level.
-        try:
-            fred_parts = {}
-            for sid in ('WALCL', 'ECBASSETSW', 'JPNASSETS'):
-                fr = fetch_fred_series(sid, sid, 'USD M', start_year=2014)
-                if fr and fr.get('series'):
-                    for pt in fr['series']:
-                        dt = None
-                        for f in ('%d/%m/%y', '%d/%m/%Y'):
-                            try:
-                                dt = datetime.strptime(pt['date'], f)
-                                break
-                            except ValueError:
-                                continue
-                        if dt:
-                            fred_parts.setdefault(dt.strftime('%Y-%m'), {})[sid] = float(pt['value'])
-            # Only months where all three reported, so the aggregate is like-for-like.
-            fred_monthly = {m: sum(v.values()) for m, v in fred_parts.items() if len(v) == 3}
-            if fred_monthly and series:
-                last_bis_period = max(per_period.keys())
-                if last_bis_period in fred_monthly and fred_monthly[last_bis_period]:
-                    bis_level = series[-1]['value']
-                    ratio = bis_level / (fred_monthly[last_bis_period] / 1_000_000)
-                    added = 0
-                    for m in sorted(fred_monthly):
-                        if m <= last_bis_period:
-                            continue
-                        dt = datetime.strptime(m, '%Y-%m')
-                        series.append({"date": fmt_date(dt),
-                                       "value": round(fred_monthly[m] / 1_000_000 * ratio, 2),
-                                       "extended_from": "FRED WALCL+ECBASSETSW+JPNASSETS, ratio-matched to BIS"})
-                        added += 1
-                    if added:
-                        log(f"    extended cb_assets by {added} month(s) from FRED (ratio {ratio:.3f})")
-        except Exception as _ext:
-            log(f"    cb_assets FRED extension skipped: {_ext}")
-
         return {
             "label": "Global CB Total Assets (Fed+ECB+BOJ+BOE+SNB)",
             "unit": "USD T",

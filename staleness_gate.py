@@ -35,6 +35,18 @@ DATA = Path(__file__).parent / 'economic_data.json'
 DAILY, MONTHLY, QUARTERLY, ANNUAL = 'daily', 'monthly', 'quarterly', 'annual'
 TOLERANCE = {DAILY: 10, MONTHLY: 75, QUARTERLY: 200, ANNUAL: 500}
 
+# Some series are as fresh as their SOURCE allows and will never meet the generic
+# tolerance. Verified 2026-08-12: AU unemployment reads 2026-05-01 on ABS *and* on
+# FRED's OECD mirror (LRHUTTTTAUM156S), so no source on earth has newer — flagging it
+# monthly was the gate being wrong, not the data. These carry their own limits, with
+# the reason recorded so a future reader can re-test rather than trust a magic number.
+SOURCE_LAG_OVERRIDE = {
+    'unemployment': (140, 'ABS + OECD/FRED both publish AU labour force ~3 months in arrears'),
+    'cpi':          (260, 'ABS quarterly CPI; FRED OECD mirrors are OLDER still (2025-01)'),
+    'private_debt': (500, 'World Bank FS.AST.PRVT.GD.ZS is annual and lags 1-2 years'),
+    'deficit':      (900, 'World Bank GC.NLD.TOTL.GD.ZS annual; AU last reported 2022'),
+}
+
 CADENCE = {
     # market data — should never be more than a few days old
     'asx200': DAILY, 'allords': DAILY, 'smallcap': DAILY, 'audusd': DAILY,
@@ -88,6 +100,9 @@ def audit() -> dict:
         age = (today - last).days
         cad = CADENCE.get(key, MONTHLY)
         tol = TOLERANCE[cad]
+        if key in SOURCE_LAG_OVERRIDE:
+            tol, _why = SOURCE_LAG_OVERRIDE[key]
+            cad = f'{cad} (source-lag)'
         rec = {'key': key, 'label': label, 'last': last.isoformat(),
                'age_days': age, 'cadence': cad, 'tolerance': tol,
                'points': len(series)}
